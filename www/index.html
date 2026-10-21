@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>FutebolApp</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #020617;
+        color: #e2e8f0;
+        font-family: system-ui, -apple-system, sans-serif;
+        display: grid;
+        place-items: center;
+      }
+      .loader {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #0ea5e9;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div class="loader"></div>
+  </body>
+</html>

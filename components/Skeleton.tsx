@@ -1,0 +1,198 @@
+"use client"
+
+import { cn } from "@/lib/utils"
+
+export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("animate-pulse rounded bg-muted", className)}
+      {...props}
+    />
+  )
+}
+
+export function MatchCardSkeleton() {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <Skeleton className="w-20 h-4" />
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-1 min-w-[70px]">
+          <Skeleton className="w-20 h-10" />
+          <Skeleton className="w-24 h-3" />
+        </div>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <Skeleton className="w-20 h-4" />
+          <Skeleton className="w-10 h-10 rounded-full" />
+        </div>
+      </div>
+      <Skeleton className="mt-3 h-3 w-1/4" />
+    </div>
+  )
+}
+
+export function TeamCardSkeleton() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+      <Skeleton className="w-10 h-10 rounded-xl" />
+      <div className="flex-1">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-3 w-1/4 mt-1" />
+      </div>
+      <Skeleton className="w-20 h-8 rounded-full" />
+    </div>
+  )
+}
+
+export function NewsCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <Skeleton className="aspect-video w-full" />
+      <div className="p-3 space-y-2">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-3 w-1/4" />
+      </div>
+    </div>
+  )
+}
+
+export function LeagueTableSkeleton() {
+  return (
+    <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left divide-y divide-border/50">
+          <thead className="bg-muted/40">
+            <tr>
+              <th className="px-3 py-3 w-6"><Skeleton className="h-4 w-6" /></th>
+              <th className="px-3 py-3"><Skeleton className="h-4 w-20" /></th>
+              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
+              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
+              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
+              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
+              <th className="px-3 py-3 text-right w-6"><Skeleton className="h-4 w-10" /></th>
+              <th className="px-3 py-3 text-right w-6"><Skeleton className="h-4 w-10" /></th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <tr key={i} className="animate-pulse">
+                <td className="px-3 py-2.5"><Skeleton className="h-4 w-6" /></td>
+                <td className="px-3 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-6 h-6 rounded-full" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
+                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
+                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
+                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
+                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-10" /></td>
+                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-10" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+export function MatchDetailSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 flex-shrink-0">
+              <Skeleton className="w-16 h-16 rounded-full" />
+              <div className="space-y-1">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center gap-1">
+              <Skeleton className="w-24 h-12" />
+              <Skeleton className="w-28 h-3" />
+            </div>
+            <div className="flex items-center gap-2.5 flex-shrink-0">
+              <div className="text-right">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <Skeleton className="w-16 h-16 rounded-full" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/50 pt-3">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+      </div>
+      <div className="rounded-xl border border-border bg-card">
+        <div className="p-3 border-b border-border/50">
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="p-3 space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-start gap-3 p-2 rounded-lg border border-border/50 bg-muted/30 animate-pulse">
+              <Skeleton className="w-6 h-6 rounded-full" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function TeamDetailSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <Skeleton className="w-24 h-24 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="col-span-2 rounded-xl border border-border bg-card p-3 h-20" />
+      </div>
+      <div className="rounded-xl border border-border bg-card">
+        <div className="p-3 border-b border-border/50">
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex items-end gap-2 p-3 h-20 animate-pulse">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex-1 rounded-t-lg bg-muted" />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function PageSkeleton({ sections = 3 }: { sections?: number }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-border px-3 py-3 safe-area-top shadow-sm animate-pulse">
+        <Skeleton className="h-10 w-3/4 rounded-xl mb-3" />
+        <Skeleton className="h-10 w-full rounded-xl" />
+      </div>
+      <div className="flex-1 overflow-y-auto px-3 pb-24 safe-area-bottom space-y-4">
+        {Array.from({ length: sections }).map((_, i) => (
+          <Skeleton key={i} className="rounded-xl border border-border bg-card p-4 h-32" />
+        ))}
+      </div>
+    </div>
+  )
+}
