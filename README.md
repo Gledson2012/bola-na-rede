@@ -1,4 +1,4 @@
-# ⚽ FutebolApp
+# ⚽ Bola na Rede
 
 Aplicativo mobile de futebol desenvolvido com **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS** e empacotado para Android com **Capacitor**.
 

@@ -57,7 +57,7 @@ export function Header() {
             </div>
             <div>
               <span className="font-black text-base tracking-tight text-foreground block leading-none">
-                Futebol<span className="text-futebol-600">App</span>
+                Bola na <span className="text-futebol-600">Rede</span>
               </span>
               <span className="text-[10px] text-muted-foreground font-semibold tracking-tight">
                 {liveCount > 0 ? `${liveCount} ao vivo` : "Central de Ligas"}

@@ -64,8 +64,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const handleShare = async () => {
     const title = match ? `${match.homeTeam.name} x ${match.awayTeam.name}` : "Partida"
     const text = match
-      ? `Acompanhe ${match.homeTeam.name} vs ${match.awayTeam.name} no FutebolApp!`
-      : "Acompanhe no FutebolApp!"
+      ? `Acompanhe ${match.homeTeam.name} vs ${match.awayTeam.name} no Bola na Rede!`
+      : "Acompanhe no Bola na Rede!"
     const url = window.location.href
 
     if (navigator.share) {

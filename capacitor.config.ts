@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.futebolapp.app',
-  appName: 'FutebolApp',
+  appName: 'Bola na Rede',
   webDir: 'www',
   server: {
     url: 'https://futebol-app-eight.vercel.app',

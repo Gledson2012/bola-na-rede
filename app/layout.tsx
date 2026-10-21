@@ -5,13 +5,13 @@ import { BottomNav } from "@/components/layout/BottomNav"
 import { Providers } from "@/components/providers/Providers"
 
 export const metadata: Metadata = {
-  title: "FutebolApp • Placares e Ligas do Mundo",
+  title: "Bola na Rede • Placares e Ligas do Mundo",
   description: "Acompanhe todos os campeonatos, placares ao vivo, tabela e notícias de futebol.",
-  applicationName: "FutebolApp",
+  applicationName: "Bola na Rede",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "FutebolApp",
+    title: "Bola na Rede",
   },
   formatDetection: {
     telephone: false,

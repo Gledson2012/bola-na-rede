@@ -65,7 +65,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   const handleShare = async () => {
     const title = team ? `Perfil do ${team.name}` : "Clube"
-    const text = team ? `Veja as estatísticas e jogos do ${team.name} no FutebolApp!` : "FutebolApp"
+    const text = team ? `Veja as estatísticas e jogos do ${team.name} no Bola na Rede!` : "Bola na Rede"
     const url = window.location.href
 
     if (navigator.share) {

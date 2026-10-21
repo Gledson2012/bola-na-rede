@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "FutebolApp • Placares e Ligas do Mundo",
-    short_name: "FutebolApp",
+    name: "Bola na Rede • Placares e Ligas do Mundo",
+    short_name: "Bola na Rede",
     description:
       "Acompanhe campeonatos, placares ao vivo, classificações e notícias de futebol.",
     start_url: "/jogos",
