@@ -16,7 +16,7 @@ const featuredLeagues = [
   { id: "bra.1", label: "Brasileirão", flag: "🇧🇷" },
   { id: "eng.1", label: "Premier League", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
   { id: "esp.1", label: "La Liga", flag: "🇪🇸" },
-  { id: "uefa.champions", label: "Champions", flag: "🇪🇺" },
+  { id: "uefa.champions", label: "Liga dos Campeões", flag: "🇪🇺" },
   { id: "mex.1", label: "Liga MX", flag: "🇲🇽" },
   { id: "usa.1", label: "MLS", flag: "🇺🇸" },
   { id: "fra.1", label: "Liga Francesa", flag: "🇫🇷" },

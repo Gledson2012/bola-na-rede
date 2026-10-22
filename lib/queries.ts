@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { api, fetchWithTimeout, mapApiMatchToMatch, mapApiMatchToMatchDetail, mapApiTeamToTeam, mapApiNewsToNews, mapApiStandingToStanding } from "@/lib/api"
-import type { Match, News, NewsWithMatches, RelatedMatch } from "@/types"
+import type { Match, MatchDetail, News, NewsWithMatches, RelatedMatch } from "@/types"
 import type { AnalysisResponse } from "@/lib/prediction"
 import { useFavoritesStore } from "@/lib/store"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
@@ -50,7 +50,7 @@ export function useGlobalMatches(initialMatches?: Match[]) {
   })
 }
 
-export function useMatch(id: string) {
+export function useMatch(id: string, initialDetail?: MatchDetail) {
   return useQuery({
     queryKey: ["matches", "detail", id],
     queryFn: async () => {
@@ -60,6 +60,9 @@ export function useMatch(id: string) {
     enabled: !!id,
     refetchInterval: (query) => query.state.data?.status === "live" ? 15_000 : false,
     staleTime: 10_000,
+    ...(initialDetail
+      ? { initialData: initialDetail, initialDataUpdatedAt: 0 }
+      : {}),
   })
 }
 

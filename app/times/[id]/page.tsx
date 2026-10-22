@@ -481,7 +481,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                       <div>
                         <div className="flex items-center gap-2 text-xs font-semibold">
                           <span>{m.homeTeam.name}</span>
-                          <span className="font-bold text-futebol-600">vs</span>
+                          <span className="font-bold text-futebol-600">x</span>
                           <span>{m.awayTeam.name}</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground">

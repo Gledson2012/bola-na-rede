@@ -9,6 +9,11 @@ import type {
   News,
   Standing,
 } from "@/types"
+import {
+  localizeCompetition,
+  localizeCountry,
+  localizeNewsCategory,
+} from "@/lib/pt-br"
 
 const API_BASE = "/api/proxy"
 const REQUEST_TIMEOUT_MS = 15_000
@@ -228,8 +233,8 @@ export function mapApiMatchToMatch(m: ApiMatch): Match {
     status: m.status,
     minute: toMatchMinute(m.minute),
     date: buildMatchDate(m.kickoff),
-    competition: m.competition,
-    competitionCountry: m.competitionCountry,
+    competition: localizeCompetition(m.competition),
+    competitionCountry: localizeCountry(m.competitionCountry),
     competitionId: m.competitionId,
     venue: m.venue,
     kickoff: m.kickoff,
@@ -269,7 +274,7 @@ export function mapApiNewsToNews(n: ApiNews): News {
     title: n.title,
     excerpt,
     image,
-    category: n.category || "Futebol",
+    category: localizeNewsCategory(n.category),
     date,
     readTime,
     url: n.url,

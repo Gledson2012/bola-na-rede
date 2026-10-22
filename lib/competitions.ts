@@ -104,8 +104,8 @@ export const ALL_COMPETITIONS: CompetitionMeta[] = [
   },
   {
     id: "uefa.champions",
-    name: "Champions League",
-    shortName: "Champions",
+    name: "Liga dos Campeões",
+    shortName: "Liga dos Campeões",
     country: "Europa",
     continent: "Europa",
     flag: "🇪🇺",
@@ -250,12 +250,28 @@ export const ALL_COMPETITIONS: CompetitionMeta[] = [
   },
   {
     id: "uefa.europa",
-    name: "Europa League",
-    shortName: "Europa League",
+    name: "Liga Europa",
+    shortName: "Liga Europa",
     country: "Europa",
     continent: "Europa",
     flag: "🇪🇺",
     color: "#ea580c",
+    totalTeams: 36,
+    format: "tournament",
+    zones: [
+      { from: 1, to: 8, label: "R16 direta", color: "emerald" },
+      { from: 9, to: 24, label: "Playoff", color: "amber" },
+      { from: 25, to: 36, label: "Eliminado", color: "slate" },
+    ],
+  },
+  {
+    id: "uefa.europa.conf",
+    name: "Liga Conferência",
+    shortName: "Liga Conferência",
+    country: "Europa",
+    continent: "Europa",
+    flag: "🇪🇺",
+    color: "#0d9488",
     totalTeams: 36,
     format: "tournament",
     zones: [
@@ -339,8 +355,8 @@ export const ALL_COMPETITIONS: CompetitionMeta[] = [
   },
   {
     id: "ksa.1",
-    name: "Saudi Pro League",
-    shortName: "Saudi League",
+    name: "Liga Saudita",
+    shortName: "Liga Saudita",
     country: "Arábia Saudita",
     continent: "Internacional",
     flag: "🇸🇦",
@@ -384,7 +400,14 @@ export function getCompetitionMeta(idOrName?: string): CompetitionMeta {
 
   // Partial matches
   if (normalized.includes("brasil") || normalized.includes("bra.1")) return ALL_COMPETITIONS[0]
-  if (normalized.includes("champion") || normalized.includes("uefa.champions")) return ALL_COMPETITIONS.find((c) => c.id === "uefa.champions")!
+  if (
+    normalized.includes("champion") ||
+    normalized.includes("campeões") ||
+    normalized.includes("campeoes") ||
+    normalized.includes("uefa.champions")
+  ) {
+    return ALL_COMPETITIONS.find((c) => c.id === "uefa.champions")!
+  }
   if (normalized.includes("premier") || normalized.includes("eng.1") || normalized.includes("inglaterra")) return ALL_COMPETITIONS.find((c) => c.id === "eng.1")!
   if (normalized.includes("liga") && normalized.includes("espanh") || normalized.includes("esp.1") || normalized.includes("la liga")) return ALL_COMPETITIONS.find((c) => c.id === "esp.1")!
   if (normalized.includes("libertadores") || normalized.includes("conmebol.libertadores")) return ALL_COMPETITIONS.find((c) => c.id === "conmebol.libertadores")!
@@ -392,7 +415,28 @@ export function getCompetitionMeta(idOrName?: string): CompetitionMeta {
   if (normalized.includes("bundesliga") || normalized.includes("ger.1") || normalized.includes("alemanha")) return ALL_COMPETITIONS.find((c) => c.id === "ger.1")!
   if (normalized.includes("sudamericana") || normalized.includes("sul-americana")) return ALL_COMPETITIONS.find((c) => c.id === "conmebol.sudamericana")!
   if (normalized.includes("frança") || normalized.includes("fra.1") || normalized.includes("ligue 1")) return ALL_COMPETITIONS.find((c) => c.id === "fra.1")!
-  if (normalized.includes("europa league") || normalized.includes("uefa.europa")) return ALL_COMPETITIONS.find((c) => c.id === "uefa.europa")!
+  if (
+    normalized.includes("conference") ||
+    normalized.includes("conferência") ||
+    normalized.includes("conferencia") ||
+    normalized.includes("uefa.europa.conf")
+  ) {
+    return ALL_COMPETITIONS.find((c) => c.id === "uefa.europa.conf")!
+  }
+  if (
+    normalized.includes("europa league") ||
+    normalized.includes("liga europa") ||
+    normalized.includes("uefa.europa")
+  ) {
+    return ALL_COMPETITIONS.find((c) => c.id === "uefa.europa")!
+  }
+  if (
+    normalized.includes("saudi") ||
+    normalized.includes("saudita") ||
+    normalized.includes("ksa.1")
+  ) {
+    return ALL_COMPETITIONS.find((c) => c.id === "ksa.1")!
+  }
   if (normalized.includes("portugal") || normalized.includes("por.1")) return ALL_COMPETITIONS.find((c) => c.id === "por.1")!
   if (normalized.includes("mex") || normalized.includes("mex.1")) return ALL_COMPETITIONS.find((c) => c.id === "mex.1")!
   if (normalized.includes("arg") || normalized.includes("arg.1") || normalized.includes("argentin")) return ALL_COMPETITIONS.find((c) => c.id === "arg.1")!

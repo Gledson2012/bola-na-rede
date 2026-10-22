@@ -54,6 +54,7 @@ lib/
 ├── history.ts              # Forma recente e classificação a partir de resultados
 ├── live-monitor-storage.ts # Redis REST e deduplicação/lock
 ├── news-matching.ts        # Vinculação entre notícias e partidas
+├── pt-br.ts                # Tradução de competições, países e lances
 ├── prediction.ts           # Modelo de Poisson
 ├── queries.ts              # Hooks de dados (React Query)
 ├── query-persistence.ts    # Seleção do cache restaurado offline
@@ -165,6 +166,11 @@ request.
   `localStorage`.
 - Listas longas usam `content-visibility: auto` para não calcular layout do que
   está fora da tela.
+- Toda a interface está em pt-BR, inclusive nomes de competições e países que a
+  API entrega em inglês e os lances da partida (`lib/pt-br.ts`). Nomes próprios
+  (times, jogadores e estádios) são mantidos como na fonte.
+- O detalhe da partida também é renderizado no servidor: os lances já aparecem
+  no primeiro paint e o placar ao vivo continua atualizando no cliente.
 
 ## 📱 Android (Capacitor)
 
