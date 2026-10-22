@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
@@ -66,16 +66,13 @@ export default function MatchDetailClient({
   const { data: tableData = [] } = useCompetitionTable(match?.competitionId)
   const { isPinnedMatch, togglePinnedMatch, hasReminder, toggleReminder } = useFavorites()
 
-  const [activeTab, setActiveTab] = useState<"lances" | "tabela">("lances")
+  const [selectedTab, setSelectedTab] = useState<"lances" | "tabela">("lances")
   const { message: toastMessage, show: showToast } = useToast()
 
   // Se a tabela esvaziar (refetch sem dados), a aba "Classificação" some do
-  // seletor e o conteúdo ficaria em branco sem caminho de volta.
-  useEffect(() => {
-    if (activeTab === "tabela" && tableData.length === 0) {
-      setActiveTab("lances")
-    }
-  }, [activeTab, tableData.length])
+  // seletor. Derivar a aba ativa evita um efeito de correção de estado.
+  const activeTab: "lances" | "tabela" =
+    selectedTab === "tabela" && tableData.length === 0 ? "lances" : selectedTab
 
   const handleShare = async () => {
     const title = match ? `${match.homeTeam.name} x ${match.awayTeam.name}` : "Partida"
@@ -338,7 +335,7 @@ export default function MatchDetailClient({
             aria-selected={activeTab === "lances"}
             aria-controls="tab-lances"
             id="tab-btn-lances"
-            onClick={() => setActiveTab("lances")}
+            onClick={() => setSelectedTab("lances")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
               activeTab === "lances"
@@ -361,7 +358,7 @@ export default function MatchDetailClient({
               aria-selected={activeTab === "tabela"}
               aria-controls="tab-tabela"
               id="tab-btn-tabela"
-              onClick={() => setActiveTab("tabela")}
+              onClick={() => setSelectedTab("tabela")}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
                 activeTab === "tabela"

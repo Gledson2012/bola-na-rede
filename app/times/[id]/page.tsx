@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
@@ -14,7 +14,7 @@ import {
 import { cn, formatTime, copyToClipboard } from "@/lib/utils"
 
 interface TeamDetailPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 function TeamHeaderLogo({ src, alt, name, color, size = 72 }: { src?: string; alt: string; name: string; color?: string; size?: number }) {
@@ -49,7 +49,7 @@ function TeamHeaderLogo({ src, alt, name, color, size = 72 }: { src?: string; al
 }
 
 export default function TeamDetailPage({ params }: TeamDetailPageProps) {
-  const { id } = params
+  const { id } = use(params)
   const { data: team, isLoading: teamLoading, error: teamError, refetch } = useTeam(id)
   const { data: formMatches = [], isLoading: formLoading } = useTeamForm(id, 6)
   const { data: nextMatch, isLoading: nextLoading } = useTeamNext(id)

@@ -76,7 +76,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className="h-full antialiased">
+    <html lang="pt-BR" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="font-sans h-full bg-slate-950 text-slate-200 flex justify-center">
         <Providers>
           <ServiceWorkerRegistration />

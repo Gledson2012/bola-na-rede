@@ -25,8 +25,9 @@ async function loadInitialMatch(id: string): Promise<MatchDetail | null> {
 export default async function MatchDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const initialMatch = await loadInitialMatch(params.id)
-  return <MatchDetailClient id={params.id} initialMatch={initialMatch} />
+  const { id } = await params
+  const initialMatch = await loadInitialMatch(id)
+  return <MatchDetailClient id={id} initialMatch={initialMatch} />
 }

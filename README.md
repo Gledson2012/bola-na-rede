@@ -1,10 +1,11 @@
 # ⚽ Bola na Rede
 
-Aplicativo mobile de futebol desenvolvido com **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS** e empacotado para Android com **Capacitor**.
+Aplicativo mobile de futebol desenvolvido com **Next.js 16 (App Router, Turbopack)**, **TypeScript**, **Tailwind CSS** e empacotado para Android com **Capacitor**.
 
 ## 🚀 Tecnologias
 
-- [Next.js 14](https://nextjs.org/) — App Router
+- [Next.js 16](https://nextjs.org/) — App Router com Turbopack
+- [React 19](https://react.dev/) — biblioteca de interface
 - [TypeScript](https://www.typescriptlang.org/)
 - [Tailwind CSS](https://tailwindcss.com/) — estilização utility-first
 - [TanStack Query](https://tanstack.com/query) — cache e atualização automática dos dados
@@ -136,7 +137,7 @@ npm run dev
 Verificações:
 
 ```bash
-npm run lint        # ESLint (next/core-web-vitals)
+npm run lint        # ESLint 9 (flat config, next/core-web-vitals)
 npx tsc --noEmit    # Checagem de tipos
 npm test            # Testes unitários (Vitest)
 npm run build       # build de produção

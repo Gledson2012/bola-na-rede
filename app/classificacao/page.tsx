@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, Suspense } from "react"
+import { useState, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { LeagueTableSkeleton } from "@/components/Skeleton"
@@ -40,17 +40,21 @@ function ClassificacaoContent() {
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>(
     isKnownLeague(leagueParam) ? leagueParam : "bra.1"
   )
+  const [lastLeagueParam, setLastLeagueParam] = useState<string | null>(
+    leagueParam
+  )
   const [selectedRegion, setSelectedRegion] = useState<RegionFilter>("all")
   const [tableSearch, setTableSearch] = useState("")
 
-  // O parâmetro da URL é a fonte da verdade: o Header navega para
-  // /classificacao?league=X e, se o usuário já estiver na tela, o initializer
-  // do useState não roda de novo — sem isto a tabela não mudaria.
-  useEffect(() => {
+  // Sincroniza com a URL sem efeito: quando o Header navega para
+  // /classificacao?league=X, o parâmetro muda e o estado acompanha no mesmo
+  // render. Cliques locais continuam respondendo na hora.
+  if (leagueParam !== lastLeagueParam) {
+    setLastLeagueParam(leagueParam)
     if (isKnownLeague(leagueParam)) {
       setSelectedCompetitionId(leagueParam)
     }
-  }, [leagueParam])
+  }
 
   const selectCompetition = (competitionId: string) => {
     setSelectedCompetitionId(competitionId)
@@ -59,7 +63,7 @@ function ClassificacaoContent() {
     })
   }
 
-  const activeCompId = selectedCompetitionId || "bra.1"
+  const activeCompId = selectedCompetitionId
   const compMeta = useMemo(() => getCompetitionMeta(activeCompId), [activeCompId])
 
   const {
