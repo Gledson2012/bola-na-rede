@@ -264,7 +264,7 @@ export default function AnalisePage() {
               />
             ))}
           </div>
-        ) : isError ? (
+        ) : isError && matches.length === 0 ? (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
             <div className="flex items-start gap-2">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />

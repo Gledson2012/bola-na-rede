@@ -167,7 +167,7 @@ export default function NoticiasClient({
     setSelectedCategory(null)
   }
 
-  if (error) {
+  if (error && news.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
         <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">

@@ -226,7 +226,7 @@ function ClassificacaoContent() {
       </div>
 
       {/* Standings Table Feed */}
-      {error ? (
+      {error && standings.length === 0 ? (
         <div className="p-4 rounded-2xl border border-destructive/30 bg-destructive/5 text-center text-xs text-destructive space-y-2">
           <p>Erro ao carregar classificação de {compMeta.name}.</p>
           <button

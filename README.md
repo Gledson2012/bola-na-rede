@@ -56,6 +56,7 @@ lib/
 ├── news-matching.ts        # Vinculação entre notícias e partidas
 ├── prediction.ts           # Modelo de Poisson
 ├── queries.ts              # Hooks de dados (React Query)
+├── query-persistence.ts    # Seleção do cache restaurado offline
 ├── store.ts                # Estado persistido com versão e limite de itens
 ├── upstream.ts             # Cache/retry das chamadas à API de futebol
 ├── utils.ts                # cn, formatadores e utilitários
@@ -154,6 +155,9 @@ request.
 - O service worker guarda assets imutáveis (`/_next/static/*`) e mostra
   `public/offline.html` quando a navegação falha por falta de rede. Ele é
   registrado automaticamente apenas no build de produção.
+- O cache de leitura do React Query é persistido em `localStorage` por 24 h:
+  ao abrir sem rede, as telas mostram os últimos dados salvos, com um aviso
+  visível de que podem estar desatualizados.
 - O otimizador de imagens do Next está desligado (`images.unoptimized`), pois as
   imagens vêm de hosts variados; isso fecha o endpoint `/_next/image`.
 - Requisições do cliente têm timeout com mensagem amigável em caso de rede ruim.

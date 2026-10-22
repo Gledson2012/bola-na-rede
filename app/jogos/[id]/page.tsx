@@ -99,7 +99,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     )
   }
 
-  if (error || !match) {
+  if (!match) {
     // A API upstream só mantém os detalhes das partidas do dia corrente:
     // partidas de dias anteriores respondem 404 mesmo existindo no histórico.
     const isArchived = error instanceof Error && error.message.includes("404")

@@ -123,7 +123,7 @@ export default function TimesPage() {
 
   const isLoading = teamsLoading || (selectedLeague ? leagueLoading : false)
 
-  if (error) {
+  if (error && teams.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center px-4">
         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">

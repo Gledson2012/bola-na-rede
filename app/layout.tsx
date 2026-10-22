@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header"
 import { BottomNav } from "@/components/layout/BottomNav"
 import { Providers } from "@/components/providers/Providers"
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration"
+import { OfflineBanner } from "@/components/OfflineBanner"
 
 const SITE_URL =
   process.env.APP_PUBLIC_URL?.replace(/\/$/, "") ||
@@ -88,6 +89,7 @@ export default function RootLayout({
               Pular para o conteúdo
             </a>
             <Header />
+            <OfflineBanner />
             <main
               id="conteudo"
               tabIndex={-1}
