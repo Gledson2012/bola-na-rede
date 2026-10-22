@@ -1,0 +1,32 @@
+name: Live match monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: live-match-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check live matches
+        env:
+          LIVE_MONITOR_URL: ${{ vars.LIVE_MONITOR_URL }}
+          MONITOR_CRON_SECRET: ${{ secrets.MONITOR_CRON_SECRET }}
+        run: |
+          if [ -z "$LIVE_MONITOR_URL" ] || [ -z "$MONITOR_CRON_SECRET" ]; then
+            echo "::error::Configure LIVE_MONITOR_URL and MONITOR_CRON_SECRET in repository settings."
+            exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            --max-time 90 \
+            --retry 2 \
+            --retry-delay 3 \
+            -X POST "${LIVE_MONITOR_URL%/}/api/live-monitor" \
+            -H "Authorization: Bearer ${MONITOR_CRON_SECRET}"
