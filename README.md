@@ -11,7 +11,8 @@ Aplicativo mobile de futebol desenvolvido com **Next.js 14 (App Router)**, **Typ
 - [Zustand](https://zustand-demo.pmnd.rs/) — favoritos, partidas fixadas e lembretes (persistidos)
 - [Lucide React](https://lucide.dev/) — ícones
 - [Capacitor 7](https://capacitorjs.com/) — empacotamento Android
-- Mobile-first, áreas seguras (notch) e PWA (manifest + ícone)
+- [Vitest](https://vitest.dev/) — testes unitários das regras de domínio
+- Mobile-first, áreas seguras (notch) e PWA (manifest + ícones PNG/maskable)
 
 ## 📦 Estrutura
 
@@ -36,25 +37,32 @@ app/
 ├── classificacao/page.tsx  # Tabela de classificação
 └── noticias/page.tsx       # Notícias
 components/
-├── live/                   # Controle de alertas de partidas
-├── ui/                     # Button, Card, Badge
-├── layout/                 # Header, BottomNav
+├── analise/                # Painel de análise e backtest
 ├── futebol/                # MatchCard, TeamCard, LeagueTable, NewsCard
+├── layout/                 # Header, BottomNav
+├── live/                   # Controle de alertas de partidas
 ├── providers/              # React Query + reidratação do Zustand
+├── ui/                     # Button
 ├── ErrorBoundary.tsx
 └── Skeleton.tsx
 lib/
-├── api.ts                  # Cliente da API + mapeadores
+├── api.ts                  # Cliente da API (com timeout) + mapeadores
 ├── backtest.ts             # Avaliação retrospectiva das probabilidades
-├── live-monitor-storage.ts # Redis REST e deduplicação/lock
-├── queries.ts              # Hooks de dados (React Query)
-├── web-push.ts             # Inscrições e envio de notificações
 ├── competitions.ts         # Metadados das competições
-├── store.ts                # Estado persistido (favoritos/lembretes)
-└── utils.ts                # cn, formatDate, formatTime
+├── concurrency.ts          # Execução paralela com limite
+├── history.ts              # Forma recente e classificação a partir de resultados
+├── live-monitor-storage.ts # Redis REST e deduplicação/lock
+├── news-matching.ts        # Vinculação entre notícias e partidas
+├── prediction.ts           # Modelo de Poisson
+├── queries.ts              # Hooks de dados (React Query)
+├── store.ts                # Estado persistido com versão e limite de itens
+├── upstream.ts             # Cache/retry das chamadas à API de futebol
+├── utils.ts                # cn, formatadores e utilitários
+├── web-push.ts             # Inscrições e envio de notificações
+└── *.test.ts               # Testes das regras de domínio (Vitest)
 types/index.ts              # Tipos globais (Team, Match, Standing, News)
-public/push-service-worker.js # Recepção de notificações push
-.github/workflows/           # Agendamento do monitor a cada 5 minutos
+public/                     # Ícones PWA (PNG/maskable) e service worker
+.github/workflows/          # CI e agendamento do monitor a cada 5 minutos
 ```
 
 ## 🔌 Fonte de dados
@@ -125,9 +133,26 @@ npm run dev
 Verificações:
 
 ```bash
-npm run build   # build de produção
-npm run lint    # ESLint (next/core-web-vitals)
+npm run lint        # ESLint (next/core-web-vitals)
+npx tsc --noEmit    # Checagem de tipos
+npm test            # Testes unitários (Vitest)
+npm run build       # build de produção
 ```
+
+O workflow `.github/workflows/ci.yml` executa essas etapas em cada push e pull
+request.
+
+## 🛡️ Qualidade e segurança
+
+- Headers de segurança (HSTS, `nosniff`, `X-Frame-Options`, Permissions-Policy e
+  um subconjunto conservador de CSP) aplicados a todas as rotas.
+- `/api/analise` e `/api/noticias` são respostas globais cacheadas na CDN
+  (`revalidate` + `s-maxage`), reduzindo execuções do modelo por visitante.
+- O otimizador de imagens do Next está desligado (`images.unoptimized`), pois as
+  imagens vêm de hosts variados; isso fecha o endpoint `/_next/image`.
+- Requisições do cliente têm timeout com mensagem amigável em caso de rede ruim.
+- O estado persistido tem versão, migração e teto por lista para não estourar o
+  `localStorage`.
 
 ## 📱 Android (Capacitor)
 
@@ -144,5 +169,6 @@ cd android && ./gradlew assembleDebug
 - Contrato de API com data real do jogo (para filtros por dia) e minutagem em minutos
 - Enriquecer a fonte de dados: estatísticas, escalações e H2H reais
 - Autenticação (NextAuth.js / Clerk)
-- Notificações push (OneSignal / Firebase)
+- Componentes de servidor para as listas iniciais e virtualização das listas longas
+- Rate limit no proxy (requer Redis ou regra no provedor de borda)
 - Cache offline / estratégia de fallback no WebView

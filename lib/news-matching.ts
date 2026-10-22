@@ -38,10 +38,14 @@ export function teamAppearsInText(teamName: string, text: string): boolean {
   const normalizedName = normalizeTeamName(teamName)
   if (normalizedName.length < MIN_NAME_LENGTH) return false
 
+  // O texto pode chegar cru (com acentos e pontuação): normalizar aqui torna a
+  // função correta por si só, em vez de depender do chamador.
+  const normalizedText = normalizeText(text)
+
   const pattern = new RegExp(
     `(^|\\s)${normalizedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`
   )
-  return pattern.test(text)
+  return pattern.test(normalizedText)
 }
 
 export function toRelatedMatch(match: Match): RelatedMatch {

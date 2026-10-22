@@ -10,6 +10,34 @@ const upstreamApi =
 
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          // Subconjunto conservador de CSP: bloqueia enquadramento e plugins
+          // sem arriscar os scripts inline que o Next injeta.
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+          },
+        ],
+      },
+    ]
+  },
   async rewrites() {
     return [
       {
@@ -18,49 +46,12 @@ const nextConfig = {
       },
     ]
   },
+  // Todas as imagens do app usam `unoptimized` (logos e capas vêm de hosts
+  // variados, fora de uma allowlist estável). Desligar o otimizador global
+  // reflete isso e fecha a superfície do endpoint /_next/image, que é o vetor
+  // do advisory de DoS por `remotePatterns`.
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "a.espncdn.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "s2-ge.glbimg.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "static.gazetaesportiva.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "media.torcedores.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "flagsapi.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "crus.s3.amazonaws.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "upload.wikimedia.org",
-        pathname: "/**",
-      },
-    ],
+    unoptimized: true,
   },
 }
 

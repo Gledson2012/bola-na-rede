@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { api, mapApiMatchToMatch, mapApiMatchToMatchDetail, mapApiTeamToTeam, mapApiNewsToNews, mapApiStandingToStanding } from "@/lib/api"
+import { api, fetchWithTimeout, mapApiMatchToMatch, mapApiMatchToMatchDetail, mapApiTeamToTeam, mapApiNewsToNews, mapApiStandingToStanding } from "@/lib/api"
 import type { NewsWithMatches, RelatedMatch } from "@/types"
 import type { AnalysisResponse } from "@/lib/prediction"
 import { useFavoritesStore } from "@/lib/store"
@@ -57,7 +57,7 @@ export function useAnalysis() {
   return useQuery({
     queryKey: ["analysis"],
     queryFn: async (): Promise<AnalysisResponse> => {
-      const response = await fetch("/api/analise", { cache: "no-store" })
+      const response = await fetchWithTimeout("/api/analise", { cache: "no-store" })
       if (!response.ok) {
         throw new Error(`Falha ao carregar análise: ${response.status}`)
       }
@@ -201,7 +201,7 @@ export function useNewsWithMatches() {
   return useQuery({
     queryKey: ["news", "with-matches"],
     queryFn: async (): Promise<NewsWithMatchesResponse> => {
-      const response = await fetch("/api/noticias", { cache: "no-store" })
+      const response = await fetchWithTimeout("/api/noticias", { cache: "no-store" })
       if (!response.ok) {
         throw new Error(`Falha ao carregar as notícias: ${response.status}`)
       }

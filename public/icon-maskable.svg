@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#0284c7"/>
+  <g transform="translate(256 256) scale(7.5) translate(-32 -32)">
+    <circle cx="32" cy="32" r="17" fill="#ffffff"/>
+    <polygon points="32,22 22,29 26,41 38,41 42,29" fill="#0284c7"/>
+    <g stroke="#0284c7" stroke-width="3" stroke-linecap="round">
+      <path d="M32 15v7"/>
+      <path d="M32 42v7"/>
+      <path d="M17 32h5"/>
+      <path d="M42 32h5"/>
+      <path d="M21.5 21.5l4 4"/>
+      <path d="M38.5 38.5l4 4"/>
+      <path d="M42.5 21.5l-4 4"/>
+      <path d="M25.5 38.5l-4 4"/>
+    </g>
+  </g>
+</svg>

@@ -20,8 +20,10 @@ import {
 } from "@/lib/prediction"
 import type { ApiMatch, MatchDetail, Standing } from "@/types"
 
-// A rota precisa rodar a cada requisição; o cache fica nos fetches individuais.
-export const dynamic = "force-dynamic"
+// A resposta é global (não depende do usuário): o cache de rota mantém o
+// resultado por 15s e serve o anterior enquanto revalida, em vez de recalcular
+// o modelo a cada visitante e a cada polling da tela.
+export const revalidate = 15
 export const maxDuration = 60
 
 /** Janela de histórico usada para reconstruir a forma recente dos times. */
@@ -137,7 +139,9 @@ export async function GET() {
     }
 
     return NextResponse.json(payload, {
-      headers: { "Cache-Control": "no-store" },
+      headers: {
+        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=45",
+      },
     })
   } catch (error) {
     console.error("[analise] falha ao gerar análise:", error)

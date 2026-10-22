@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { AlertTriangle, LoaderCircle, RefreshCw } from "lucide-react"
 import { cn, percent } from "@/lib/utils"
+import { fetchWithTimeout } from "@/lib/api"
 import type { BacktestResponse } from "@/lib/prediction"
 
 function score(value: number | null): string {
@@ -51,10 +52,11 @@ export function BacktestPanel() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch("/api/analise/backtest", {
-        cache: "no-store",
-        signal: controller.signal,
-      })
+      const response = await fetchWithTimeout(
+        "/api/analise/backtest",
+        { cache: "no-store", signal: controller.signal },
+        60_000
+      )
       if (!response.ok) {
         const body = await response.json().catch(() => null)
         throw new Error(

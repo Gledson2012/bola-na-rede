@@ -4,7 +4,7 @@ import { linkNewsToMatches } from "@/lib/news-matching"
 import { getUpstreamJson } from "@/lib/upstream"
 import type { ApiMatch, ApiNews } from "@/types"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 60
 export const maxDuration = 60
 
 /**
@@ -32,7 +32,11 @@ export async function GET() {
         news: linked.news,
         matches: linked.matches,
       },
-      { headers: { "Cache-Control": "no-store" } }
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      }
     )
   } catch (error) {
     console.error("[noticias] falha ao carregar as notícias:", error)

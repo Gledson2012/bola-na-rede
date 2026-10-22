@@ -11,12 +11,58 @@ import type {
 } from "@/types"
 
 const API_BASE = "/api/proxy"
+const REQUEST_TIMEOUT_MS = 15_000
+
+/**
+ * `fetch` com timeout.
+ *
+ * Sem isso, uma conexão móvel instável deixava a tela presa no skeleton para
+ * sempre (o WebView não cancela a requisição sozinho). O sinal externo, quando
+ * existir, também é respeitado.
+ */
+export function fetchWithTimeout(
+  input: string,
+  init: RequestInit = {},
+  timeoutMs = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => {
+    controller.abort(
+      new DOMException("A requisição excedeu o tempo limite.", "TimeoutError")
+    )
+  }, timeoutMs)
+
+  const externalSignal = init.signal
+  const forwardAbort = () => controller.abort(externalSignal?.reason)
+  externalSignal?.addEventListener("abort", forwardAbort, { once: true })
+
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    clearTimeout(timer)
+    externalSignal?.removeEventListener("abort", forwardAbort)
+  })
+}
+
+export function isTimeoutError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "TimeoutError"
+}
 
 async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { Accept: "application/json", ...init?.headers },
-    cache: "no-store",
-  })
+  let res: Response
+  try {
+    res = await fetchWithTimeout(`${API_BASE}${path}`, {
+      ...init,
+      headers: { Accept: "application/json", ...init?.headers },
+      cache: "no-store",
+    })
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      throw new Error(
+        "A conexão demorou demais. Verifique sua internet e tente novamente."
+      )
+    }
+    throw error
+  }
+
   if (!res.ok) {
     // A API upstream devolve `{ code, message }`; a mensagem ajuda a distinguir
     // "partida encerrada não está mais disponível" de uma falha real.
@@ -31,7 +77,12 @@ async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new Error(`API error: ${res.status}${detail}`)
   }
-  return res.json()
+
+  try {
+    return (await res.json()) as T
+  } catch {
+    throw new Error("A resposta do servidor não pôde ser lida.")
+  }
 }
 
 // Tipos internos da API (conforme OpenAPI)

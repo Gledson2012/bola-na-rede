@@ -1,6 +1,30 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+/**
+ * Teto por lista.
+ *
+ * `localStorage` tem ~5 MB e o estado é reescrito a cada alteração. Sem limite,
+ * anos de favoritos/lembretes acumulados degradam a escrita e podem estourar a
+ * cota (falha silenciosa do `persist`).
+ */
+const MAX_ITEMS = 500
+
+/** Normaliza o que veio do storage: só strings, sem duplicatas, respeitando o teto. */
+function normalizeIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const unique = Array.from(
+    new Set(value.filter((id): id is string => typeof id === 'string' && id.length > 0))
+  )
+  return unique.slice(-MAX_ITEMS)
+}
+
+/** Adiciona/remove mantendo o teto (descarta os mais antigos). */
+function toggled(ids: string[] = [], id: string): string[] {
+  const next = ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]
+  return next.slice(-MAX_ITEMS)
+}
+
 interface FavoritesState {
   favorites: string[]
   pinnedMatches: string[]
@@ -20,27 +44,15 @@ export const useFavoritesStore = create<FavoritesState>()(
       pinnedMatches: [],
       reminders: [],
       toggleFavorite: (teamId: string) => {
-        const { favorites = [] } = get()
-        const next = favorites.includes(teamId)
-          ? favorites.filter((id) => id !== teamId)
-          : [...favorites, teamId]
-        set({ favorites: next })
+        set({ favorites: toggled(get().favorites, teamId) })
       },
       isFavorite: (teamId: string) => (get().favorites || []).includes(teamId),
       togglePinnedMatch: (matchId: string) => {
-        const { pinnedMatches = [] } = get()
-        const next = pinnedMatches.includes(matchId)
-          ? pinnedMatches.filter((id) => id !== matchId)
-          : [...pinnedMatches, matchId]
-        set({ pinnedMatches: next })
+        set({ pinnedMatches: toggled(get().pinnedMatches, matchId) })
       },
       isPinnedMatch: (matchId: string) => (get().pinnedMatches || []).includes(matchId),
       toggleReminder: (matchId: string) => {
-        const { reminders = [] } = get()
-        const next = reminders.includes(matchId)
-          ? reminders.filter((id) => id !== matchId)
-          : [...reminders, matchId]
-        set({ reminders: next })
+        set({ reminders: toggled(get().reminders, matchId) })
       },
       hasReminder: (matchId: string) => (get().reminders || []).includes(matchId),
     }),
@@ -48,6 +60,28 @@ export const useFavoritesStore = create<FavoritesState>()(
       name: 'futebol-favorites',
       // Avoid server/client hydration mismatches: rehydrate after mount
       skipHydration: true,
+      version: 1,
+      /**
+       * Sem `version`, um formato antigo (ou corrompido) no `localStorage`
+       * entrava direto no estado. Aqui qualquer versão é limpa e normalizada.
+       */
+      migrate: (persisted) => {
+        const state = (persisted ?? {}) as Partial<FavoritesState>
+        return {
+          favorites: normalizeIds(state.favorites),
+          pinnedMatches: normalizeIds(state.pinnedMatches),
+          reminders: normalizeIds(state.reminders),
+        } as FavoritesState
+      },
+      merge: (persisted, current) => {
+        const state = (persisted ?? {}) as Partial<FavoritesState>
+        return {
+          ...current,
+          favorites: normalizeIds(state.favorites),
+          pinnedMatches: normalizeIds(state.pinnedMatches),
+          reminders: normalizeIds(state.reminders),
+        }
+      },
     }
   )
 )
