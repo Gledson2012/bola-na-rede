@@ -1,28 +1,63 @@
 "use client"
 
-import { useState, useMemo, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useMemo, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { LeagueTableSkeleton } from "@/components/Skeleton"
 import { LeagueTable } from "@/components/futebol/LeagueTable"
+import { TableStats } from "@/components/futebol/TableStats"
 import { useCompetitions, useCompetitionTable } from "@/lib/queries"
 import { ALL_COMPETITIONS, getCompetitionMeta } from "@/lib/competitions"
-import { Trophy, RefreshCw, Search, X, Globe, ChevronRight } from "lucide-react"
+import { Trophy, RefreshCw, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type RegionFilter = "all" | "Brasil" | "Europa" | "América do Sul" | "América do Norte"
 
+const REGION_TABS: Array<{
+  value: RegionFilter
+  label: string
+  flag: string
+}> = [
+  { value: "all", label: "Todas", flag: "🌐" },
+  { value: "Brasil", label: "Brasil", flag: "🇧🇷" },
+  { value: "Europa", label: "Europa", flag: "🇪🇺" },
+  { value: "América do Sul", label: "América do Sul", flag: "🌎" },
+  { value: "América do Norte", label: "América do Norte", flag: "🇲🇽" },
+]
+
 function ClassificacaoContent() {
   const searchParams = useSearchParams()
-  const initialLeagueParam = searchParams.get("league")
+  const router = useRouter()
+  const leagueParam = searchParams.get("league")
 
-  const { data: competitions = [], isLoading: compsLoading, refetch: refetchComps } = useCompetitions()
+  const { refetch: refetchComps } = useCompetitions()
+
+  // Só aceita ligas conhecidas: "?league=lixo" geraria uma requisição inválida
+  // à API e um título de fallback sem sentido.
+  const isKnownLeague = (value: string | null): value is string =>
+    !!value && ALL_COMPETITIONS.some((competition) => competition.id === value)
 
   const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>(
-    initialLeagueParam || "bra.1"
+    isKnownLeague(leagueParam) ? leagueParam : "bra.1"
   )
   const [selectedRegion, setSelectedRegion] = useState<RegionFilter>("all")
   const [tableSearch, setTableSearch] = useState("")
+
+  // O parâmetro da URL é a fonte da verdade: o Header navega para
+  // /classificacao?league=X e, se o usuário já estiver na tela, o initializer
+  // do useState não roda de novo — sem isto a tabela não mudaria.
+  useEffect(() => {
+    if (isKnownLeague(leagueParam)) {
+      setSelectedCompetitionId(leagueParam)
+    }
+  }, [leagueParam])
+
+  const selectCompetition = (competitionId: string) => {
+    setSelectedCompetitionId(competitionId)
+    router.replace(`/classificacao?league=${encodeURIComponent(competitionId)}`, {
+      scroll: false,
+    })
+  }
 
   const activeCompId = selectedCompetitionId || "bra.1"
   const compMeta = useMemo(() => getCompetitionMeta(activeCompId), [activeCompId])
@@ -52,6 +87,17 @@ function ClassificacaoContent() {
     }),
     []
   )
+
+  const regionCountByFilter = useMemo(() => {
+    const counts: Record<RegionFilter, number> = {
+      all: regionCounts.all,
+      Brasil: regionCounts.brasil,
+      Europa: regionCounts.europa,
+      "América do Sul": regionCounts.americaSul,
+      "América do Norte": regionCounts.americaNorte,
+    }
+    return counts
+  }, [regionCounts])
 
   const handleRefresh = () => {
     refetchTable()
@@ -106,66 +152,28 @@ function ClassificacaoContent() {
 
       {/* Region Selector Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
-        <button
-          onClick={() => setSelectedRegion("all")}
-          className={cn(
-            "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-            selectedRegion === "all"
-              ? "bg-foreground text-background border-foreground font-bold shadow-sm"
-              : "bg-card text-muted-foreground border-border hover:bg-muted"
-          )}
-        >
-          Todas as Ligas ({regionCounts.all})
-        </button>
-        <button
-          onClick={() => setSelectedRegion("Brasil")}
-          className={cn(
-            "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
-            selectedRegion === "Brasil"
-              ? "bg-foreground text-background border-foreground font-bold shadow-sm"
-              : "bg-card text-muted-foreground border-border hover:bg-muted"
-          )}
-        >
-          <span>🇧🇷</span>
-          <span>Brasil ({regionCounts.brasil})</span>
-        </button>
-        <button
-          onClick={() => setSelectedRegion("Europa")}
-          className={cn(
-            "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
-            selectedRegion === "Europa"
-              ? "bg-foreground text-background border-foreground font-bold shadow-sm"
-              : "bg-card text-muted-foreground border-border hover:bg-muted"
-          )}
-        >
-          <span>🇪🇺</span>
-          <span>Europa ({regionCounts.europa})</span>
-        </button>
-        <button
-          onClick={() => setSelectedRegion("América do Sul")}
-          className={cn(
-            "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
-            selectedRegion === "América do Sul"
-              ? "bg-foreground text-background border-foreground font-bold shadow-sm"
-              : "bg-card text-muted-foreground border-border hover:bg-muted"
-          )}
-        >
-          <span>🌎</span>
-          <span>América do Sul ({regionCounts.americaSul})</span>
-        </button>
-        <button
-          onClick={() => setSelectedRegion("América do Norte")}
-          className={cn(
-            "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
-            selectedRegion === "América do Norte"
-              ? "bg-foreground text-background border-foreground font-bold shadow-sm"
-              : "bg-card text-muted-foreground border-border hover:bg-muted"
-          )}
-        >
-          <span>🇲🇽/🇺🇸</span>
-          <span>América do Norte ({regionCounts.americaNorte})</span>
-        </button>
+        {REGION_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => setSelectedRegion(tab.value)}
+            aria-pressed={selectedRegion === tab.value}
+            className={cn(
+              "flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
+              selectedRegion === tab.value
+                ? "bg-foreground text-background border-foreground font-bold shadow-sm"
+                : "bg-card text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            <span>{tab.flag}</span>
+            <span>
+              {tab.label} ({regionCountByFilter[tab.value]})
+            </span>
+          </button>
+        ))}
       </div>
+
+      {/* Resumo da competição */}
+      {standings.length > 0 && <TableStats standings={standings} />}
 
       {/* Competitions Carousel */}
       <div className="space-y-2 sticky top-14 z-30 bg-background/95 backdrop-blur-md py-2 border-b border-border">
@@ -176,7 +184,7 @@ function ClassificacaoContent() {
               <button
                 key={c.id}
                 onClick={() => {
-                  setSelectedCompetitionId(c.id)
+                  selectCompetition(c.id)
                   setTableSearch("")
                 }}
                 className={cn(
@@ -252,8 +260,9 @@ function ClassificacaoContent() {
 }
 
 export default function ClassificacaoPage() {
+  const router = useRouter()
   return (
-    <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar classificação" onRetry={() => window.location.reload()} />}>
+    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar classificação" onRetry={() => { reset(); router.refresh() }} />)}>
       <Suspense fallback={<LeagueTableSkeleton />}>
         <ClassificacaoContent />
       </Suspense>

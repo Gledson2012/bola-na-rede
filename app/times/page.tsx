@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { TeamCard } from "@/components/futebol/TeamCard"
 import { TeamCardSkeleton } from "@/components/Skeleton"
-import { useTeams, useFavorites, useCompetitionTable } from "@/lib/queries"
+import { useTeams, useFavorites, useCompetitionTable, useTodayMatches, useLiveMatches } from "@/lib/queries"
 import { Search, Star, Users, Grid, List, X, Radio } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -19,6 +19,9 @@ const featuredLeagues = [
   { id: "uefa.champions", label: "Champions", flag: "🇪🇺" },
   { id: "mex.1", label: "Liga MX", flag: "🇲🇽" },
   { id: "usa.1", label: "MLS", flag: "🇺🇸" },
+  { id: "fra.1", label: "Liga Francesa", flag: "🇫🇷" },
+  { id: "ger.1", label: "Bundesliga", flag: "🇩🇪" },
+  { id: "ita.1", label: "Série A", flag: "🇮🇹" },
 ]
 
 export default function TimesPage() {
@@ -36,13 +39,37 @@ export default function TimesPage() {
     selectedLeague || undefined
   )
 
-  const activeTeamsPool = useMemo(() => {
-    if (selectedLeague) {
-      // Do not silently fall back to every team when a league has no table
-      return leagueStandings.map((s) => s.team)
+  // O endpoint `/teams` não informa atividade: `matchesToday`/`liveMatches`
+  // chegam sempre 0 e o filtro "Jogam Hoje" nunca retornava ninguém. Contamos
+  // os jogos do dia/ao vivo a partir das partidas já carregadas.
+  const { data: todayMatches = [] } = useTodayMatches()
+  const { data: liveMatches = [] } = useLiveMatches()
+
+  const activity = useMemo(() => {
+    const today = new Map<string, number>()
+    const live = new Map<string, number>()
+    for (const match of todayMatches) {
+      for (const id of [match.homeTeam.id, match.awayTeam.id]) {
+        today.set(id, (today.get(id) ?? 0) + 1)
+      }
     }
-    return teams
-  }, [selectedLeague, leagueStandings, teams])
+    for (const match of liveMatches) {
+      for (const id of [match.homeTeam.id, match.awayTeam.id]) {
+        live.set(id, (live.get(id) ?? 0) + 1)
+      }
+    }
+    return { today, live }
+  }, [todayMatches, liveMatches])
+
+  const activeTeamsPool = useMemo(() => {
+    // Do not silently fall back to every team when a league has no table
+    const base = selectedLeague ? leagueStandings.map((s) => s.team) : teams
+    return base.map((team) => ({
+      ...team,
+      matchesToday: activity.today.get(team.id) ?? team.matchesToday ?? 0,
+      liveMatches: activity.live.get(team.id) ?? team.liveMatches ?? 0,
+    }))
+  }, [selectedLeague, leagueStandings, teams, activity])
 
   // Filtered and sorted teams
   const processedTeams = useMemo(() => {
@@ -118,13 +145,13 @@ export default function TimesPage() {
 
   if (isLoading && activeTeamsPool.length === 0) {
     return (
-      <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar times" onRetry={() => refetchTeams()} />}>
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar times" onRetry={() => { reset(); refetchTeams() }} />)}>
         <div className="flex flex-col h-full space-y-4 py-3">
           <div className="h-28 rounded-2xl bg-muted animate-pulse" />
           <div className="h-10 rounded-xl bg-muted animate-pulse" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <TeamCardSkeleton key={i} />
+              <TeamCardSkeleton key={i} showLeague showForm showRecord showPoints showPosition />
             ))}
           </div>
         </div>
@@ -133,7 +160,7 @@ export default function TimesPage() {
   }
 
   return (
-    <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar times" onRetry={() => refetchTeams()} />}>
+    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar times" onRetry={() => { reset(); refetchTeams() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-12">
         {/* Hero Banner */}
         <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 text-white p-5 shadow-xl border border-futebol-800 relative overflow-hidden">
@@ -306,6 +333,8 @@ export default function TimesPage() {
                     !compactMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                   )}
                   title="Visualização em cards"
+                  aria-label="Visualização em cards"
+                  aria-pressed={!compactMode}
                 >
                   <Grid className="w-3.5 h-3.5" />
                 </button>
@@ -316,6 +345,8 @@ export default function TimesPage() {
                     compactMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                   )}
                   title="Visualização em lista"
+                  aria-label="Visualização em lista"
+                  aria-pressed={compactMode}
                 >
                   <List className="w-3.5 h-3.5" />
                 </button>
@@ -336,6 +367,8 @@ export default function TimesPage() {
                 ? `Nenhum clube corresponde à busca "${search}".`
                 : filterMode === "favorites"
                 ? "Você ainda não possui clubes favoritos salvos."
+                : filterMode === "playingToday"
+                ? "Nenhum clube joga hoje com os dados disponíveis no momento."
                 : selectedLeague
                 ? "Não há classificação disponível para esta liga no momento."
                 : "Nenhum time disponível com os filtros atuais."}

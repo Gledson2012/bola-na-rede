@@ -51,3 +51,26 @@ export const useFavoritesStore = create<FavoritesState>()(
     }
   )
 )
+
+/**
+ * Seletores reativos.
+ *
+ * `isFavorite`/`isPinnedMatch` do store leem `get()` no momento da chamada:
+ * a função é estável, mas o valor lido só muda se o componente for
+ * re-renderizado por outro motivo. Quem memoiza com elas como dependência
+ * (ex.: `useMemo(..., [matches, isPinnedMatch])`) nunca recalcula.
+ *
+ * Estes seletores retornam um booleano derivado do estado, então o Zustand
+ * só re-renderiza o componente quando o valor realmente muda.
+ */
+export function useIsFavorite(teamId: string): boolean {
+  return useFavoritesStore((state) => (state.favorites || []).includes(teamId))
+}
+
+export function useIsPinnedMatch(matchId: string): boolean {
+  return useFavoritesStore((state) => (state.pinnedMatches || []).includes(matchId))
+}
+
+export function useHasReminder(matchId: string): boolean {
+  return useFavoritesStore((state) => (state.reminders || []).includes(matchId))
+}

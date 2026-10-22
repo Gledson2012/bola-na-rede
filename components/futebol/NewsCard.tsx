@@ -1,15 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type KeyboardEvent, type ReactNode } from "react"
 import Image from "next/image"
 import type { News } from "@/types"
-import { ExternalLink, Clock, Newspaper, Share2, Eye } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Clock, Eye, Heart } from "lucide-react"
+import { RelativeTime } from "@/components/futebol/RelativeTime"
 
 interface NewsCardProps {
   news: News
   onOpenReader?: (news: News) => void
   featured?: boolean
+  isSaved?: boolean
+  onSaveToggle?: () => void
+  /** Título já com o termo de busca realçado (ReactNode, nunca HTML em string). */
+  titleNode?: ReactNode
+  /** Resumo já com o termo de busca realçado. */
+  excerptNode?: ReactNode
 }
 
 const fallbackSportsImages = [
@@ -19,14 +25,25 @@ const fallbackSportsImages = [
   "https://images.unsplash.com/photo-1489944445391-11dd35574ca6?w=800&q=80",
 ]
 
-export function NewsCard({ news, onOpenReader, featured = false }: NewsCardProps) {
+export function NewsCard({
+  news,
+  onOpenReader,
+  featured = false,
+  isSaved,
+  onSaveToggle,
+  titleNode,
+  excerptNode,
+}: NewsCardProps) {
   const [imgError, setImgError] = useState(false)
 
-  const defaultImg = fallbackSportsImages[Math.abs(news.title.length) % fallbackSportsImages.length]
+  const defaultImg =
+    fallbackSportsImages[(news.title?.length ?? 0) % fallbackSportsImages.length]
   const imageSrc = !imgError && news.image ? news.image : defaultImg
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault()
+  const title = titleNode ?? news.title
+  const excerpt = excerptNode ?? news.excerpt
+
+  const open = () => {
     if (onOpenReader) {
       onOpenReader(news)
     } else if (news.url) {
@@ -34,14 +51,36 @@ export function NewsCard({ news, onOpenReader, featured = false }: NewsCardProps
     }
   }
 
+  const handleClick = () => {
+    open()
+  }
+
+  // O card é um alvo de toque: precisa ser acionável por teclado também.
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    open()
+  }
+
+  const handleSaveToggle = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    onSaveToggle?.()
+  }
+
+  const hasCategory = news.category && news.category !== "Geral"
+
   // Featured Large Banner Mode
   if (featured) {
     return (
       <div
+        role="button"
+        tabIndex={0}
         onClick={handleClick}
-        className="group relative block overflow-hidden rounded-3xl border border-border bg-card shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+        onKeyDown={handleKeyDown}
+        aria-label={`Ler: ${news.title}`}
+        className="group relative block cursor-pointer overflow-hidden rounded-3xl border border-border bg-card shadow-lg transition-all duration-300 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-futebol-500"
       >
-        <div className="relative aspect-[21/9] sm:aspect-[2/1] w-full overflow-hidden bg-muted">
+        <div className="relative aspect-[21/9] w-full overflow-hidden bg-muted sm:aspect-[2/1]">
           <Image
             src={imageSrc}
             alt={news.title}
@@ -53,33 +92,49 @@ export function NewsCard({ news, onOpenReader, featured = false }: NewsCardProps
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
           {/* Badges on image */}
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-futebol-600 text-white text-xs font-black uppercase tracking-wider shadow-md">
+          <div className="absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-futebol-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
               Destaque
             </span>
             {news.provider && (
-              <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold border border-white/20">
+              <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur-md">
                 {news.provider}
+              </span>
+            )}
+            {hasCategory && (
+              <span className="rounded-full border border-white/20 bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-md">
+                {news.category}
               </span>
             )}
           </div>
 
+          {isSaved !== undefined && onSaveToggle && (
+            <button
+              type="button"
+              onClick={handleSaveToggle}
+              aria-label={isSaved ? "Remover dos salvos" : "Salvar para depois"}
+              className="absolute right-4 top-4 z-20 rounded-full bg-futebol-600 p-2 text-white backdrop-blur-md transition-colors hover:bg-futebol-700"
+            >
+              <Heart className={isSaved ? "h-3 w-3 fill-white" : "h-3 w-3"} />
+            </button>
+          )}
+
           {/* Title and Excerpt overlay */}
           <div className="absolute bottom-4 left-4 right-4 z-10 space-y-1.5 text-white">
-            <h2 className="text-base sm:text-xl font-black leading-tight drop-shadow-md group-hover:text-futebol-300 transition-colors line-clamp-2">
-              {news.title}
+            <h2 className="line-clamp-2 text-base font-black leading-tight drop-shadow-md transition-colors group-hover:text-futebol-300 sm:text-xl">
+              {title}
             </h2>
-            <p className="text-xs sm:text-sm text-white/80 line-clamp-2 drop-shadow-sm font-normal">
-              {news.excerpt}
+            <p className="line-clamp-2 text-xs font-normal leading-relaxed text-white/80 drop-shadow-sm sm:text-sm">
+              {excerpt}
             </p>
-            <div className="flex items-center gap-3 text-[11px] text-white/70 pt-1 font-medium">
+            <div className="flex items-center gap-3 pt-1 text-[11px] font-medium text-white/70">
               <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {news.date}
+                <Clock className="h-3 w-3" />
+                <RelativeTime iso={news.publishedAt} fallback={news.date} />
               </span>
               <span>•</span>
-              <span>{news.readTime}</span>
-              <span className="ml-auto inline-flex items-center gap-1 text-futebol-300 font-bold group-hover:translate-x-1 transition-transform">
+              <span>{news.readTime} de leitura</span>
+              <span className="ml-auto inline-flex items-center gap-1 font-bold text-futebol-300 transition-transform group-hover:translate-x-1">
                 <span>Ler matéria</span>
                 <Eye className="w-3.5 h-3.5" />
               </span>
@@ -93,8 +148,12 @@ export function NewsCard({ news, onOpenReader, featured = false }: NewsCardProps
   // Standard Card Mode
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={handleClick}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm hover:shadow-md hover:border-futebol-400/60 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+      onKeyDown={handleKeyDown}
+      aria-label={`Ler: ${news.title}`}
+      className="group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-futebol-400/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-futebol-500"
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-muted">
         <Image
@@ -107,36 +166,53 @@ export function NewsCard({ news, onOpenReader, featured = false }: NewsCardProps
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
 
-        {/* Source Provider badge */}
-        <div className="absolute top-2.5 left-2.5 z-10">
-          <span className="px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-bold text-white border border-white/20">
+        {/* Fonte */}
+        <div className="absolute left-2.5 top-2.5 z-10">
+          <span className="rounded-lg border border-white/20 bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
             {news.provider || "Esporte"}
           </span>
         </div>
 
-        <div className="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/70 backdrop-blur-md text-[10px] font-medium text-white">
-          <Clock className="w-3 h-3 text-futebol-400" />
+        <div className="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-1 rounded-lg bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-md">
+          <Clock className="h-3 w-3 text-futebol-400" />
           <span>{news.readTime}</span>
         </div>
       </div>
 
-      <div className="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+      <div className="flex flex-1 flex-col justify-between space-y-2 p-3.5">
         <div>
-          <h3 className="font-bold text-xs sm:text-sm text-foreground leading-snug line-clamp-2 group-hover:text-futebol-600 transition-colors">
-            {news.title}
+          {hasCategory && (
+            <span className="mb-1 inline-block rounded-md bg-futebol-600/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-futebol-700 dark:text-futebol-400">
+              {news.category}
+            </span>
+          )}
+          <h3 className="line-clamp-2 text-xs font-bold leading-snug text-foreground transition-colors group-hover:text-futebol-600 sm:text-sm">
+            {title}
           </h3>
-          <p className="text-[11px] text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
-            {news.excerpt}
+          <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+            {excerpt}
           </p>
         </div>
 
-        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>{news.date}</span>
-          <div className="flex items-center gap-1 text-futebol-600 font-bold group-hover:translate-x-0.5 transition-transform">
+        <div className="flex items-center justify-between border-t border-border/50 pt-2 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            <RelativeTime iso={news.publishedAt} fallback={news.date} />
+          </span>
+          <div className="flex items-center gap-1 font-bold text-futebol-600 transition-transform group-hover:translate-x-0.5">
             <span>Abrir</span>
-            <ExternalLink className="w-3 h-3" />
+            <Eye className="h-3 w-3" />
           </div>
         </div>
+        {isSaved !== undefined && (
+          <button
+            type="button"
+            onClick={handleSaveToggle}
+            className="w-full rounded-xl border border-border px-4 py-3 text-xs font-semibold transition-colors hover:bg-muted sm:w-auto"
+          >
+            {isSaved ? "Remover dos salvos" : "Salvar para depois"}
+          </button>
+        )}
       </div>
     </div>
   )

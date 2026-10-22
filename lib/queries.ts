@@ -1,7 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { api, mapApiMatchToMatch, mapApiMatchToMatchDetail, mapApiTeamToTeam, mapApiNewsToNews, mapApiStandingToStanding } from "@/lib/api"
-import type { Match, Team, News, Standing, MatchDetail, MatchEvent } from "@/types"
+import type { NewsWithMatches, RelatedMatch } from "@/types"
+import type { AnalysisResponse } from "@/lib/prediction"
 import { useFavoritesStore } from "@/lib/store"
+import { ALL_COMPETITIONS } from "@/lib/competitions"
+
+export interface NewsWithMatchesResponse {
+  generatedAt: string
+  news: NewsWithMatches[]
+  matches: RelatedMatch[]
+}
 
 // ===== MATCHES =====
 export function useLiveMatches() {
@@ -41,6 +49,23 @@ export function useMatch(id: string) {
     enabled: !!id,
     refetchInterval: (query) => query.state.data?.status === "live" ? 15_000 : false,
     staleTime: 10_000,
+  })
+}
+
+// ===== ANÁLISE ESTATÍSTICA =====
+export function useAnalysis() {
+  return useQuery({
+    queryKey: ["analysis"],
+    queryFn: async (): Promise<AnalysisResponse> => {
+      const response = await fetch("/api/analise", { cache: "no-store" })
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar análise: ${response.status}`)
+      }
+      return response.json()
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    retry: 1,
   })
 }
 
@@ -117,8 +142,6 @@ export function useTeamLast(id: string) {
   })
 }
 
-import { ALL_COMPETITIONS, getCompetitionMeta } from "@/lib/competitions"
-
 // ===== COMPETITIONS =====
 export function useCompetitions() {
   return useQuery({
@@ -173,7 +196,30 @@ export function useNews() {
   })
 }
 
+/** Notícias já vinculadas às partidas em andamento. */
+export function useNewsWithMatches() {
+  return useQuery({
+    queryKey: ["news", "with-matches"],
+    queryFn: async (): Promise<NewsWithMatchesResponse> => {
+      const response = await fetch("/api/noticias", { cache: "no-store" })
+      if (!response.ok) {
+        throw new Error(`Falha ao carregar as notícias: ${response.status}`)
+      }
+      return response.json()
+    },
+    staleTime: 3 * 60_000,
+    retry: 1,
+  })
+}
+
 // ===== FAVORITES & PINNED (Zustand persisted) =====
+
+/**
+ * Preferir os seletores finos (`useIsFavorite`, `useIsPinnedMatch`) quando o
+ * componente só precisa saber se UM item está marcado: eles re-renderizam
+ * apenas o card afetado. Este hook agregado serve para telas que exibem
+ * listas/estatísticas do estado inteiro.
+ */
 export function useFavorites() {
   const favorites = useFavoritesStore((state) => state.favorites || [])
   const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)

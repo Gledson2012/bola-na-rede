@@ -1,12 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Search, Trophy, X, ChevronRight, Globe, Radio } from "lucide-react"
+import { Search, Trophy, X, ChevronRight } from "lucide-react"
 import { useLiveMatches, useCompetitions } from "@/lib/queries"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
-import { cn } from "@/lib/utils"
 
 export function Header() {
   const router = useRouter()
@@ -14,21 +13,64 @@ export function Header() {
   const { data: liveMatches = [] } = useLiveMatches()
   const { data: competitions = [] } = useCompetitions()
   const [leaguesOpen, setLeaguesOpen] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   const liveCount = liveMatches.length
 
-  // Close the leagues sheet with Escape and lock page scroll while open
+  // Fecha com Escape, prende o foco no painel e trava a rolagem do fundo
+  // enquanto a folha de ligas está aberta.
   useEffect(() => {
     if (!leaguesOpen) return
+
+    const sheet = sheetRef.current
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+
+    const focusableElements = () =>
+      Array.from(
+        sheet?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      ).filter((element) => element.getClientRects().length > 0)
+
+    focusableElements()[0]?.focus()
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLeaguesOpen(false)
+      if (e.key === "Escape") {
+        e.preventDefault()
+        setLeaguesOpen(false)
+        return
+      }
+      if (e.key !== "Tab") return
+
+      const nodes = focusableElements()
+      if (nodes.length === 0) {
+        e.preventDefault()
+        sheet?.focus()
+        return
+      }
+
+      const first = nodes[0]
+      const last = nodes[nodes.length - 1]
+      const active = document.activeElement
+      const inside = !!sheet && !!active && sheet.contains(active)
+
+      if (e.shiftKey && (active === first || !inside)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (active === last || !inside)) {
+        e.preventDefault()
+        first.focus()
+      }
     }
+
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     window.addEventListener("keydown", onKeyDown)
     return () => {
       window.removeEventListener("keydown", onKeyDown)
       document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
     }
   }, [leaguesOpen])
 
@@ -108,9 +150,14 @@ export function Header() {
         <div
           className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
           onClick={() => setLeaguesOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leagues-sheet-title"
         >
           <div
-            className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-background border border-border p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom-5 duration-200"
+            ref={sheetRef}
+            tabIndex={-1}
+            className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-background border border-border p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom-5 duration-200 outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sheet Header */}
@@ -120,7 +167,7 @@ export function Header() {
                   <Trophy className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Todos os Campeonatos & Ligas</h3>
+                  <h3 id="leagues-sheet-title" className="text-sm font-bold text-foreground">Todos os Campeonatos & Ligas</h3>
                   <p className="text-[11px] text-muted-foreground">14 ligas mundiais disponíveis com tabela e classificação</p>
                 </div>
               </div>

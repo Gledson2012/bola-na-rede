@@ -67,6 +67,14 @@ export interface Team {
     city?: string | null
     capacity?: number | null
   } | null
+  points?: number
+  position?: number
+  /** Sigla da competição a que o clube pertence (opcional). */
+  competition?: string
+  /** Forma recente ("W"/"D"/"L"), quando a fonte fornecer. */
+  form?: ("W" | "D" | "L")[]
+  won?: number
+  lost?: number
 }
 
 export interface Match {
@@ -123,6 +131,26 @@ export interface News {
   readTime: string
   url?: string
   provider?: string
+  /** Data real de publicação (ISO 8601). */
+  publishedAt?: string
+  /** Texto integral quando a fonte fornece; pode ser nulo. */
+  content?: string | null
 }
 
 export type Tab = "jogos" | "times" | "classificacao" | "noticias"
+
+/** Partida resumida, usada para vincular notícias a jogos. */
+export interface RelatedMatch {
+  id: string
+  label: string
+  competition: string
+  status: MatchStatus
+  kickoff?: string
+  homeTeam: { id: string; name: string; shortName: string; logo: string }
+  awayTeam: { id: string; name: string; shortName: string; logo: string }
+}
+
+/** Notícia com as partidas às quais ela se refere. */
+export interface NewsWithMatches extends News {
+  relatedMatches: RelatedMatch[]
+}

@@ -1,48 +1,17 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { cn, formatTime } from "@/lib/utils"
+import { useToast } from "@/lib/use-toast"
 import type { Match } from "@/types"
-import { ChevronRight, Clock, Trophy, Star, Bell, MapPin, Check } from "lucide-react"
-import { useFavorites } from "@/lib/queries"
+import { ChevronRight, Clock, Star, Bell, MapPin, Check } from "lucide-react"
+import { useFavoritesStore, useIsPinnedMatch, useHasReminder } from "@/lib/store"
+import { TeamLogo } from "@/components/futebol/TeamLogo"
 
 interface MatchCardProps {
   match: Match
   compact?: boolean
   showCompetition?: boolean
-}
-
-function TeamLogo({ src, alt, name, size = 36 }: { src?: string; alt: string; name: string; size?: number }) {
-  const [error, setError] = useState(false)
-  const initial = name ? name.trim().charAt(0).toUpperCase() : "⚽"
-
-  if (!src || error) {
-    return (
-      <div
-        style={{ width: size, height: size }}
-        className="rounded-full bg-gradient-to-br from-futebol-600 to-futebol-800 text-white font-bold flex items-center justify-center text-xs shadow-sm flex-shrink-0 border border-border"
-        aria-label={alt}
-      >
-        {initial}
-      </div>
-    )
-  }
-
-  return (
-    <div style={{ width: size, height: size }} className="relative flex-shrink-0">
-      <Image
-        src={src}
-        alt={alt}
-        width={size}
-        height={size}
-        className="rounded-full object-cover border border-border shadow-sm bg-white"
-        onError={() => setError(true)}
-        unoptimized
-      />
-    </div>
-  )
 }
 
 export function MatchCard({ match, compact = false, showCompetition = false }: MatchCardProps) {
@@ -51,12 +20,18 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
   const isUpcoming = match.status === "upcoming"
   const hasScore = match.homeScore !== null && match.awayScore !== null
 
-  const { isPinnedMatch, togglePinnedMatch, hasReminder, toggleReminder, isFavorite } = useFavorites()
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  const isPinned = isPinnedMatch(match.id)
-  const isReminded = hasReminder(match.id)
-  const isTeamFavorite = isFavorite(match.homeTeam.id) || isFavorite(match.awayTeam.id)
+  // Seletores finos: o card só re-renderiza quando o *seu* estado muda,
+  // e não a cada favoritar/desfavoritar de qualquer time.
+  const togglePinnedMatch = useFavoritesStore((state) => state.togglePinnedMatch)
+  const toggleReminder = useFavoritesStore((state) => state.toggleReminder)
+  const isPinned = useIsPinnedMatch(match.id)
+  const isReminded = useHasReminder(match.id)
+  const isTeamFavorite = useFavoritesStore(
+    (state) =>
+      (state.favorites || []).includes(match.homeTeam.id) ||
+      (state.favorites || []).includes(match.awayTeam.id)
+  )
+  const { message: toastMessage, show: showFeedback } = useToast()
 
   const matchTime = match.kickoff || (match.date ? formatTime(match.date) : "A definir")
 
@@ -72,11 +47,6 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
     e.stopPropagation()
     toggleReminder(match.id)
     showFeedback(isReminded ? "Lembrete cancelado" : "Lembrete definido para o jogo 🔔")
-  }
-
-  const showFeedback = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 2500)
   }
 
   const homeWinning = hasScore && (match.homeScore ?? 0) > (match.awayScore ?? 0)
@@ -120,7 +90,7 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
           <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <TeamLogo src={match.homeTeam.logo} alt={match.homeTeam.name} name={match.homeTeam.name} size={18} />
+                <TeamLogo src={match.homeTeam.logo} name={match.homeTeam.name} size={18} />
                 <span className={cn(
                   "text-xs truncate",
                   homeWinning ? "font-bold text-foreground" : "font-normal text-foreground/90"
@@ -139,7 +109,7 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <TeamLogo src={match.awayTeam.logo} alt={match.awayTeam.name} name={match.awayTeam.name} size={18} />
+                <TeamLogo src={match.awayTeam.logo} name={match.awayTeam.name} size={18} />
                 <span className={cn(
                   "text-xs truncate",
                   awayWinning ? "font-bold text-foreground" : "font-normal text-foreground/90"
@@ -166,6 +136,15 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
             <Star className={cn("w-3.5 h-3.5", isPinned && "fill-amber-400 text-amber-500")} />
           </button>
         </Link>
+        {toastMessage && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="absolute top-1 left-1/2 -translate-x-1/2 z-30 px-2.5 py-0.5 bg-foreground text-background text-[10px] font-semibold rounded-full shadow-lg pointer-events-none animate-in fade-in zoom-in-95 duration-150 whitespace-nowrap"
+          >
+            {toastMessage}
+          </div>
+        )}
       </div>
     )
   }
@@ -261,7 +240,6 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
             </div>
             <TeamLogo
               src={match.homeTeam.logo}
-              alt={match.homeTeam.name}
               name={match.homeTeam.name}
               size={36}
             />
@@ -298,7 +276,6 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
           <div className="col-span-3 flex items-center justify-start gap-2.5 min-w-0 text-left">
             <TeamLogo
               src={match.awayTeam.logo}
-              alt={match.awayTeam.name}
               name={match.awayTeam.name}
               size={36}
             />
@@ -336,7 +313,11 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
 
       {/* Floating feedback toast */}
       {toastMessage && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1 bg-foreground text-background text-xs font-semibold rounded-full shadow-lg pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+        <div
+          role="status"
+          aria-live="polite"
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1 bg-foreground text-background text-xs font-semibold rounded-full shadow-lg pointer-events-none animate-in fade-in zoom-in-95 duration-150"
+        >
           {toastMessage}
         </div>
       )}

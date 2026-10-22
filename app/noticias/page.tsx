@@ -1,115 +1,182 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useCallback, useEffect } from "react"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { NewsCard } from "@/components/futebol/NewsCard"
+import { NewsReader } from "@/components/futebol/NewsReader"
+import { Highlight } from "@/components/futebol/Highlight"
 import { NewsCardSkeleton } from "@/components/Skeleton"
 import { useNews } from "@/lib/queries"
-import {
-  Newspaper, Search, RefreshCw, X, ExternalLink, Share2,
-  Clock, Globe, CheckCircle2, ChevronRight
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Newspaper, Search, RefreshCw, X, Globe } from "lucide-react"
+import { cn, formatRelativeTime, copyToClipboard } from "@/lib/utils"
+import { useToast } from "@/lib/use-toast"
 import type { News } from "@/types"
 
 export default function NoticiasPage() {
   const { data: news = [], isLoading, error, refetch, isRefetching } = useNews()
 
   const [search, setSearch] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null)
   const [readingNews, setReadingNews] = useState<News | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const { message: toastMessage, show: showToast } = useToast()
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 2500)
+  // O `localStorage` só existe no navegador: a leitura acontece no efeito para
+  // não quebrar a renderização do servidor (SSR/prerender do Next).
+  const [savedNews, setSavedNews] = useState<News[]>([])
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("saved_news")
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed)) setSavedNews(parsed as News[])
+    } catch {
+      // Storage indisponível (modo privado) ou conteúdo corrompido.
+      setSavedNews([])
+    }
+  }, [])
+
+  const saveNews = (news: News) => {
+    setSavedNews((prev) => {
+      const exists = prev.some((item) => item.id === news.id)
+      if (exists) return prev
+      const updated = [...prev, news]
+      try {
+        localStorage.setItem("saved_news", JSON.stringify(updated))
+      } catch {
+        // Ignora falha de escrita: a notícia continua salva na sessão.
+      }
+      return updated
+    })
+    showToast("Notícia salva para ler depois! 📌")
   }
 
-  // Close the reader with Escape and lock page scroll while it is open
-  useEffect(() => {
-    if (!readingNews) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setReadingNews(null)
-    }
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    window.addEventListener("keydown", onKeyDown)
-    return () => {
-      window.removeEventListener("keydown", onKeyDown)
-      document.body.style.overflow = previousOverflow
-    }
-  }, [readingNews])
-
-  // Extract unique providers dynamically
-  const providers = useMemo(() => {
-    const set = new Set<string>()
-    news.forEach((n) => {
-      if (n.provider) set.add(n.provider)
+  const removeSavedNews = (newsId: string) => {
+    setSavedNews((prev) => {
+      const updated = prev.filter((item) => item.id !== newsId)
+      try {
+        localStorage.setItem("saved_news", JSON.stringify(updated))
+      } catch {
+        // Ignora falha de escrita.
+      }
+      return updated
     })
-    return Array.from(set)
+  }
+
+  const isNewsSaved = (newsId: string) => {
+    return savedNews.some((item) => item.id === newsId)
+  }
+
+  // Fontes disponíveis, com a contagem de matérias de cada uma.
+  const providers = useMemo(() => {
+    const counts = new Map<string, number>()
+    news.forEach((item) => {
+      const name = item.provider || "Notícias"
+      counts.set(name, (counts.get(name) ?? 0) + 1)
+    })
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
   }, [news])
 
-  // Filter news
+  // Categorias disponíveis, com a contagem de matérias de cada uma.
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>()
+    news.forEach((item) => {
+      const name = item.category || "Geral"
+      counts.set(name, (counts.get(name) ?? 0) + 1)
+    })
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
+  }, [news])
+
+  /**
+   * Filtragem + ordenação cronológica. A API entrega as matérias sem ordem
+   * garantida, então a mais recente sempre fica no topo.
+   */
+
   const filteredNews = useMemo(() => {
-    let result = news
+    const query = search.trim().toLocaleLowerCase("pt-BR")
+    const categoryFilter = selectedCategory || undefined
 
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      result = result.filter((n) =>
-        n.title.toLowerCase().includes(q) ||
-        n.excerpt.toLowerCase().includes(q) ||
-        (n.provider && n.provider.toLowerCase().includes(q))
-      )
-    }
+    const result = news.filter((item) => {
+      if (categoryFilter && item.category !== categoryFilter) return false
+      if (selectedProvider && item.provider !== selectedProvider) return false
+      if (!query) return true
+      const combined = [
+        item.title,
+        item.excerpt,
+        item.content ?? "",
+        item.provider ?? "",
+        item.category,
+      ].join(" ").toLocaleLowerCase("pt-BR")
+      return combined.includes(query)
+    })
 
-    if (selectedProvider) {
-      result = result.filter((n) => n.provider === selectedProvider)
-    }
+    return [...result].sort((a, b) => {
+      const timeA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0
+      const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
+      return timeB - timeA
+    })
+  }, [news, search, selectedProvider, selectedCategory])
 
-    return result
-  }, [news, search, selectedProvider])
+  const featuredStory = filteredNews[0] ?? null
+  const remainingStories = filteredNews.slice(1)
 
-  const featuredStory = useMemo(() => {
-    if (filteredNews.length === 0) return null
-    return filteredNews[0]
-  }, [filteredNews])
+  const latestUpdate = useMemo(() => {
+    const timestamps = news
+      .map((item) => item.publishedAt)
+      .filter((value): value is string => Boolean(value))
+      .map((value) => new Date(value).getTime())
+      .filter((value) => !Number.isNaN(value))
+    if (timestamps.length === 0) return null
+    return new Date(Math.max(...timestamps)).toISOString()
+  }, [news])
 
-  const remainingStories = useMemo(() => {
-    if (filteredNews.length <= 1) return []
-    return filteredNews.slice(1)
-  }, [filteredNews])
-
-  const handleShareArticle = async (n: News) => {
-    const url = n.url || window.location.href
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: n.title,
-          text: n.excerpt,
-          url,
-        })
-      } catch {
-        // Ignored
+  const handleShareArticle = useCallback(
+    async (item: News) => {
+      const url = item.url || window.location.href
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: item.title,
+            text: item.excerpt,
+            url,
+          })
+        } catch (error) {
+          // AbortError = usuário fechou o menu nativo: não é falha.
+          if (error instanceof Error && error.name !== "AbortError") {
+            showToast("Não foi possível compartilhar.")
+          }
+        }
+        return
       }
-    } else {
-      await navigator.clipboard.writeText(url)
-      showToast("Link da notícia copiado! 📋")
-    }
+
+      const copied = await copyToClipboard(url)
+      showToast(copied ? "Link da notícia copiado! 📋" : "Não foi possível copiar o link.")
+    },
+    [showToast]
+  )
+
+  const clearFilters = () => {
+    setSearch("")
+    setSelectedProvider(null)
+    setSelectedCategory(null)
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-          <Newspaper className="w-8 h-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
+        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+          <Newspaper className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-base font-bold text-foreground">Não foi possível carregar as notícias</h3>
-        <p className="text-xs text-muted-foreground max-w-xs mt-1">
+        <h3 className="text-base font-bold text-foreground">
+          Não foi possível carregar as notícias
+        </h3>
+        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
           Verifique sua conexão e tente novamente.
         </p>
         <button
           onClick={() => refetch()}
-          className="mt-4 px-4 py-2 rounded-xl bg-futebol-600 text-white text-xs font-bold hover:bg-futebol-700 transition-colors shadow-sm"
+          className="mt-4 rounded-xl bg-futebol-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-futebol-700"
         >
           Tentar novamente
         </button>
@@ -119,14 +186,14 @@ export default function NoticiasPage() {
 
   if (isLoading) {
     return (
-      <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar notícias" onRetry={() => refetch()} />}>
-        <div className="flex flex-col h-full space-y-4 py-3">
-          <div className="h-28 rounded-2xl bg-muted animate-pulse" />
-          <div className="h-10 rounded-xl bg-muted animate-pulse" />
-          <div className="h-56 rounded-2xl bg-muted animate-pulse" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <NewsCardSkeleton key={i} />
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar notícias" onRetry={() => { reset(); refetch() }} />)}>
+        <div className="flex h-full flex-col space-y-4 py-3">
+          <div className="h-28 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-10 animate-pulse rounded-xl bg-muted" />
+          <div className="h-56 animate-pulse rounded-2xl bg-muted" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <NewsCardSkeleton key={index} />
             ))}
           </div>
         </div>
@@ -135,19 +202,21 @@ export default function NoticiasPage() {
   }
 
   return (
-    <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar notícias" onRetry={() => refetch()} />}>
-      <div className="flex flex-col h-full space-y-4 pb-12">
-        {/* News Hero Banner */}
-        <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 text-white p-4 shadow-lg border border-futebol-800 relative overflow-hidden">
+    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar notícias" onRetry={() => { reset(); refetch() }} />)}>
+      <div className="flex h-full flex-col space-y-4 pb-12">
+        {/* Hero */}
+        <div className="relative overflow-hidden rounded-2xl border border-futebol-800 bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 p-4 text-white shadow-lg">
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-futebol-600/30 text-futebol-400 flex items-center justify-center font-bold">
-                  <Newspaper className="w-4 h-4" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-futebol-600/30 font-bold text-futebol-400">
+                  <Newspaper className="h-4 w-4" />
                 </div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight">Notícias do Futebol</h1>
+                <h1 className="text-xl font-black tracking-tight sm:text-2xl">
+                  Notícias do Futebol
+                </h1>
               </div>
-              <p className="text-xs text-white/70 mt-0.5">
+              <p className="mt-0.5 text-xs text-white/70">
                 Cobertura jornalística, bastidores, transferências e resultados
               </p>
             </div>
@@ -156,77 +225,121 @@ export default function NoticiasPage() {
               onClick={() => refetch()}
               disabled={isRefetching}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/20 transition-all text-white",
+                "flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-white/25",
                 isRefetching && "opacity-75"
               )}
               title="Atualizar notícias"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />
+              <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin")} />
               <span>{isRefetching ? "Atualizando..." : "Atualizar"}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/15 text-xs text-white/80">
-            <span>Total: <strong className="text-white">{news.length} matérias</strong></span>
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/15 pt-3 text-xs text-white/80">
+            <span>
+              Total: <strong className="text-white">{news.length} matérias</strong>
+            </span>
             <span className="text-white/40">•</span>
-            <span>Fontes: <strong className="text-white">ge.globo, Terra e Gazeta</strong></span>
+            <span>
+              Fontes:{" "}
+              <strong className="text-white">{providers.length}</strong>
+            </span>
+            {categories.length > 0 && (
+              <>
+                <span className="text-white/40">•</span>
+                <span>
+                  Categorias:{" "}
+                  <strong className="text-white">{categories.length}</strong>
+                </span>
+              </>
+            )}
+            {latestUpdate && (
+              <>
+                <span className="text-white/40">•</span>
+                <span>
+                  Última em{" "}
+                  <strong className="text-white">
+                    {formatRelativeTime(latestUpdate)}
+                  </strong>
+                </span>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Filter Bar: Search & Source Providers */}
-        <div className="space-y-2.5 sticky top-14 z-30 bg-background/95 backdrop-blur-md py-2 border-b border-border">
-          {/* Search Bar */}
+        {/* Filtros */}
+        <div className="sticky top-14 z-30 space-y-2.5 border-b border-border bg-background/95 py-2 backdrop-blur-md">
           <div className="relative flex items-center">
-            <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
             <input
               type="search"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por jogador, clube, técnico ou assunto..."
-              className="w-full bg-muted/60 hover:bg-muted/90 focus:bg-background border border-border focus:border-futebol-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-futebol-500/20 focus:outline-none transition-all"
+              className="w-full rounded-2xl border border-border bg-muted/60 py-2.5 pl-9 pr-9 text-xs transition-all hover:bg-muted/90 focus:bg-background focus:border-futebol-500 focus:outline-none focus:ring-2 focus:ring-futebol-500/20 sm:text-sm"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-3 p-1 rounded-full text-muted-foreground hover:text-foreground"
+                className="absolute right-3 rounded-full p-1 text-muted-foreground hover:text-foreground"
                 aria-label="Limpar busca"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
-          {/* Source Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-semibold scrollbar-hide">
             <button
               onClick={() => setSelectedProvider(null)}
+              aria-pressed={selectedProvider === null}
               className={cn(
-                "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-                !selectedProvider
-                  ? "bg-futebol-600 text-white border-futebol-600 shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
+                "whitespace-nowrap rounded-xl border px-3 py-1.5 transition-all",
+                selectedProvider === null
+                  ? "border-futebol-600 bg-futebol-600 text-white shadow-sm"
+                  : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <span>Todas as Fontes</span>
+              Todas as Fontes
               <span className="ml-1 text-[10px] opacity-80">({news.length})</span>
             </button>
 
-            {providers.map((p) => {
-              const count = news.filter((n) => n.provider === p).length
-              const isSelected = selectedProvider === p
+            {providers.map(([name, count]) => {
+              const isSelected = selectedProvider === name
               return (
                 <button
-                  key={p}
-                  onClick={() => setSelectedProvider(isSelected ? null : p)}
+                  key={name}
+                  onClick={() => setSelectedProvider(isSelected ? null : name)}
+                  aria-pressed={isSelected}
                   className={cn(
-                    "px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
+                    "flex items-center gap-1 whitespace-nowrap rounded-xl border px-3 py-1.5 transition-all",
                     isSelected
-                      ? "bg-futebol-600 text-white border-futebol-600 shadow-sm"
-                      : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                      ? "border-futebol-600 bg-futebol-600 text-white shadow-sm"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
-                  <Globe className="w-3 h-3" />
-                  <span>{p}</span>
+                  <Globe className="h-3 w-3" />
+                  <span>{name}</span>
+                  <span className="text-[10px] opacity-80">({count})</span>
+                </button>
+              )
+            })}
+            {categories.map(([name, count]) => {
+              const isSelected = selectedCategory === name
+              return (
+                <button
+                  key={name}
+                  onClick={() => setSelectedCategory(isSelected ? null : name)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "flex items-center gap-1 whitespace-nowrap rounded-xl border px-3 py-1.5 transition-all",
+                    isSelected
+                      ? "border-futebol-600 bg-futebol-600 text-white shadow-sm"
+                      : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Newspaper className="h-3 w-3" />
+                  <span>{name}</span>
                   <span className="text-[10px] opacity-80">({count})</span>
                 </button>
               )
@@ -234,25 +347,24 @@ export default function NoticiasPage() {
           </div>
         </div>
 
-        {/* Stories Feed */}
+        {/* Feed */}
         {filteredNews.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center px-4 rounded-2xl border border-dashed border-border bg-card/50">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Newspaper className="w-8 h-8 text-muted-foreground/60" />
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 px-4 py-16 text-center">
+            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <Newspaper className="h-8 w-8 text-muted-foreground/60" />
             </div>
-            <h3 className="text-base font-bold text-foreground">Nenhuma notícia encontrada</h3>
-            <p className="text-xs text-muted-foreground max-w-xs mt-1">
+            <h3 className="text-base font-bold text-foreground">
+              Nenhuma notícia encontrada
+            </h3>
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
               {search
-                ? `Nenhum resultado para "${search}".`
+                ? `Nenhum resultado para “${search}”.`
                 : "Não há notícias disponíveis para o filtro selecionado."}
             </p>
-            {(search || selectedProvider) && (
+            {(search || selectedProvider || selectedCategory) && (
               <button
-                onClick={() => {
-                  setSearch("")
-                  setSelectedProvider(null)
-                }}
-                className="mt-4 px-4 py-2 rounded-xl bg-futebol-600 text-white text-xs font-bold hover:bg-futebol-700 transition-colors shadow-sm"
+                onClick={clearFilters}
+                className="mt-4 rounded-xl bg-futebol-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-futebol-700"
               >
                 Limpar filtros
               </button>
@@ -260,107 +372,63 @@ export default function NoticiasPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* 1. Featured Top Story */}
-            {featuredStory && !search && (
+            {featuredStory && (
               <NewsCard
                 news={featuredStory}
+                titleNode={<Highlight text={featuredStory.title} query={search} />}
+                excerptNode={<Highlight text={featuredStory.excerpt || ""} query={search} />}
                 featured
                 onOpenReader={(item) => setReadingNews(item)}
+                isSaved={isNewsSaved(featuredStory.id)}
+                onSaveToggle={() => {
+                  if (isNewsSaved(featuredStory.id)) {
+                    removeSavedNews(featuredStory.id)
+                  } else {
+                    saveNews(featuredStory)
+                  }
+                }}
               />
             )}
 
-            {/* 2. Grid of other stories */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {(search ? filteredNews : remainingStories).map((item) => (
-                <NewsCard
-                  key={item.id}
-                  news={item}
-                  onOpenReader={(n) => setReadingNews(n)}
-                />
-              ))}
-            </div>
+            {remainingStories.length > 0 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {remainingStories.map((item) => (
+                  <NewsCard
+                    key={item.id}
+                    news={item}
+                    titleNode={<Highlight text={item.title} query={search} />}
+                    excerptNode={<Highlight text={item.excerpt || ""} query={search} />}
+                    onOpenReader={(news) => setReadingNews(news)}
+                    isSaved={isNewsSaved(item.id)}
+                    onSaveToggle={() => {
+                      if (isNewsSaved(item.id)) {
+                        removeSavedNews(item.id)
+                      } else {
+                        saveNews(item)
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Interactive News Reader Modal */}
         {readingNews && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
-            onClick={() => setReadingNews(null)}
-          >
-            <div
-              className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-background border border-border shadow-2xl p-5 space-y-4"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header with Close and Share */}
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <span className="px-2.5 py-0.5 rounded-full bg-futebol-600/10 text-futebol-600 text-xs font-bold uppercase tracking-wider">
-                  {readingNews.provider || "Notícia"}
-                </span>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handleShareArticle(readingNews)}
-                    className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    title="Compartilhar"
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setReadingNews(null)}
-                    className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    aria-label="Fechar"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Title & Metadata */}
-              <div className="space-y-2">
-                <h2 className="text-lg sm:text-xl font-black text-foreground leading-snug">
-                  {readingNews.title}
-                </h2>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{readingNews.date}</span>
-                  <span>•</span>
-                  <span>{readingNews.readTime} de leitura</span>
-                </div>
-              </div>
-
-              {/* Excerpt / Summary */}
-              <div className="p-4 rounded-2xl bg-muted/40 border border-border text-sm text-foreground/90 leading-relaxed whitespace-pre-line">
-                {readingNews.excerpt}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
-                {readingNews.url && (
-                  <a
-                    href={readingNews.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-futebol-600 text-white font-bold text-xs hover:bg-futebol-700 transition-colors shadow-md"
-                  >
-                    <span>Ler matéria completa no {readingNews.provider || "portal"}</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-                <button
-                  onClick={() => setReadingNews(null)}
-                  className="w-full sm:w-auto px-4 py-3 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
-                >
-                  Fechar
-                </button>
-              </div>
-            </div>
-          </div>
+          <NewsReader
+            news={readingNews}
+            onClose={() => setReadingNews(null)}
+            onShare={(item) => void handleShareArticle(item)}
+          />
         )}
 
-        {/* Floating toast */}
+        {/* Toast */}
         {toastMessage && (
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-foreground text-background text-xs font-bold rounded-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 animate-in rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background shadow-2xl fade-in zoom-in-95 duration-150"
+          >
             {toastMessage}
           </div>
         )}

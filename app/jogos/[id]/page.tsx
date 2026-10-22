@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { MatchDetailSkeleton } from "@/components/Skeleton"
 import { useMatch, useCompetitionTable, useFavorites } from "@/lib/queries"
+import { useToast } from "@/lib/use-toast"
+import { copyToClipboard } from "@/lib/utils"
 import {
   ArrowLeft, Clock, Trophy, MapPin, Share2, Star, Bell,
   ShieldAlert, CheckCircle2, Info
@@ -51,15 +53,18 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const { id } = params
   const { data: match, isLoading, error, refetch } = useMatch(id)
   const { data: tableData = [] } = useCompetitionTable(match?.competitionId)
-  const { isPinnedMatch, togglePinnedMatch, hasReminder, toggleReminder, isFavorite } = useFavorites()
+  const { isPinnedMatch, togglePinnedMatch, hasReminder, toggleReminder } = useFavorites()
 
   const [activeTab, setActiveTab] = useState<"lances" | "tabela">("lances")
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const { message: toastMessage, show: showToast } = useToast()
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 2500)
-  }
+  // Se a tabela esvaziar (refetch sem dados), a aba "Classificação" some do
+  // seletor e o conteúdo ficaria em branco sem caminho de volta.
+  useEffect(() => {
+    if (activeTab === "tabela" && tableData.length === 0) {
+      setActiveTab("lances")
+    }
+  }, [activeTab, tableData.length])
 
   const handleShare = async () => {
     const title = match ? `${match.homeTeam.name} x ${match.awayTeam.name}` : "Partida"
@@ -71,18 +76,22 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url })
-      } catch {
-        // Ignored if cancelled
+      } catch (error) {
+        // AbortError = usuário cancelou o menu nativo: silencioso é correto.
+        if (error instanceof Error && error.name !== "AbortError") {
+          showToast("Não foi possível compartilhar.")
+        }
       }
-    } else {
-      await navigator.clipboard.writeText(url)
-      showToast("Link da partida copiado! 📋")
+      return
     }
+
+    const copied = await copyToClipboard(url)
+    showToast(copied ? "Link da partida copiado! 📋" : "Não foi possível copiar o link.")
   }
 
   if (isLoading) {
     return (
-      <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar partida" onRetry={() => refetch()} />}>
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partida" onRetry={() => { reset(); refetch() }} />)}>
         <div className="flex-1 space-y-4 py-3">
           <MatchDetailSkeleton />
         </div>
@@ -91,15 +100,22 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   }
 
   if (error || !match) {
+    // A API upstream só mantém os detalhes das partidas do dia corrente:
+    // partidas de dias anteriores respondem 404 mesmo existindo no histórico.
+    const isArchived = error instanceof Error && error.message.includes("404")
     return (
-      <ErrorBoundary fallback={<ErrorFallback message={error?.message || "Partida não encontrada"} onRetry={() => refetch()} />}>
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message={error?.message || "Partida não encontrada"} onRetry={() => { reset(); refetch() }} />)}>
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
             <Trophy className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-bold">Partida não encontrada</h2>
+          <h2 className="text-lg font-bold">
+            {isArchived ? "Detalhes indisponíveis" : "Partida não encontrada"}
+          </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-            Não foi possível carregar os detalhes desta partida ou o jogo foi removido do calendário.
+            {isArchived
+              ? "A fonte de dados mantém os lances apenas das partidas do dia. O resultado continua disponível nos filtros de jogos encerrados."
+              : "Não foi possível carregar os detalhes desta partida ou o jogo foi removido do calendário."}
           </p>
           <Link
             href="/jogos"
@@ -123,7 +139,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
   const matchTime = match.kickoff || (match.date ? formatTime(match.date) : "A definir")
 
   return (
-    <ErrorBoundary fallback={<ErrorFallback message="Erro ao renderizar detalhes da partida" onRetry={() => refetch()} />}>
+    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao renderizar detalhes da partida" onRetry={() => { reset(); refetch() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-16">
         {/* Navigation Bar */}
         <div className="flex items-center justify-between py-2 border-b border-border/80">
@@ -149,6 +165,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                     : "border-border text-muted-foreground hover:bg-muted"
                 )}
                 title={isReminded ? "Lembrete ativo" : "Definir lembrete"}
+                aria-label={isReminded ? "Remover lembrete da partida" : "Definir lembrete da partida"}
+                aria-pressed={isReminded}
               >
                 <Bell className={cn("w-4 h-4", isReminded && "fill-futebol-600")} />
               </button>
@@ -166,6 +184,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                   : "border-border text-muted-foreground hover:bg-muted"
               )}
               title={isPinned ? "Partida fixada" : "Fixar partida"}
+              aria-label={isPinned ? "Desafixar partida" : "Fixar partida no topo"}
+              aria-pressed={isPinned}
             >
               <Star className={cn("w-4 h-4", isPinned && "fill-amber-400")} />
             </button>
@@ -174,6 +194,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
               onClick={handleShare}
               className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Compartilhar partida"
+              aria-label="Compartilhar partida"
             >
               <Share2 className="w-4 h-4" />
             </button>
@@ -296,8 +317,16 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
         </div>
 
         {/* Tab Selector Bar */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide border-b border-border text-xs font-semibold">
+        <div
+          role="tablist"
+          aria-label="Seções da partida"
+          className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide border-b border-border text-xs font-semibold"
+        >
           <button
+            role="tab"
+            aria-selected={activeTab === "lances"}
+            aria-controls="tab-lances"
+            id="tab-btn-lances"
             onClick={() => setActiveTab("lances")}
             className={cn(
               "flex items-center gap-1.5 px-3 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
@@ -317,6 +346,10 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
           {tableData.length > 0 && (
             <button
+              role="tab"
+              aria-selected={activeTab === "tabela"}
+              aria-controls="tab-tabela"
+              id="tab-btn-tabela"
               onClick={() => setActiveTab("tabela")}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
@@ -333,7 +366,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
         {/* Tab 1: Lances / Timeline */}
         {activeTab === "lances" && (
-          <div className="space-y-3">
+          <div id="tab-lances" role="tabpanel" aria-labelledby="tab-btn-lances" className="space-y-3">
             {events.length > 0 ? (
               <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -343,11 +376,13 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
                 <div className="space-y-2">
                   {events.map((e) => {
-                    const isGoal = e.type.toLowerCase().includes("goal")
-                    const isCard = e.type.toLowerCase().includes("card") ||
-                      e.type.toLowerCase().includes("yellow") ||
-                      e.type.toLowerCase().includes("red")
-                    const isSub = e.type.toLowerCase().includes("sub")
+                    const eventType = e.type.toLowerCase()
+                    const isGoal = eventType.includes("goal")
+                    const isRed = eventType.includes("red")
+                    const isCard = eventType.includes("card") ||
+                      eventType.includes("yellow") ||
+                      isRed
+                    const isSub = eventType.includes("sub")
 
                     return (
                       <div
@@ -356,6 +391,8 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                           "flex items-center gap-3 p-2.5 rounded-xl border transition-colors",
                           isGoal
                             ? "bg-emerald-500/10 border-emerald-500/30"
+                            : isRed
+                            ? "bg-red-500/10 border-red-500/30"
                             : isCard
                             ? "bg-amber-500/10 border-amber-500/30"
                             : "bg-muted/40 border-border/70"
@@ -368,7 +405,7 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm">
-                              {isGoal ? "⚽" : isCard ? "🟨" : isSub ? "🔄" : "📌"}
+                              {isGoal ? "⚽" : isRed ? "🟥" : isCard ? "🟨" : isSub ? "🔄" : "📌"}
                             </span>
                             <span className="text-xs font-bold capitalize text-foreground">
                               {e.type}
@@ -458,7 +495,12 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
         {/* Tab 2: Tabela da Competição */}
         {activeTab === "tabela" && tableData.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm overflow-hidden">
+          <div
+            id="tab-tabela"
+            role="tabpanel"
+            aria-labelledby="tab-btn-tabela"
+            className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm overflow-hidden"
+          >
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Trophy className="w-3.5 h-3.5 text-futebol-600" />
               <span>Tabela • {match.competition}</span>
@@ -466,18 +508,21 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
+                <caption className="sr-only">
+                  Classificação de {match.competition}
+                </caption>
                 <thead>
                   <tr className="border-b border-border text-[10px] text-muted-foreground uppercase">
-                    <th className="py-2 pr-2">Pos</th>
-                    <th className="py-2">Clube</th>
-                    <th className="py-2 text-center">J</th>
-                    <th className="py-2 text-center">V</th>
-                    <th className="py-2 text-center">SG</th>
-                    <th className="py-2 text-right font-bold text-foreground">Pts</th>
+                    <th scope="col" className="py-2 pr-2">Pos</th>
+                    <th scope="col" className="py-2">Clube</th>
+                    <th scope="col" className="py-2 text-center">J</th>
+                    <th scope="col" className="py-2 text-center">V</th>
+                    <th scope="col" className="py-2 text-center">SG</th>
+                    <th scope="col" className="py-2 text-right font-bold text-foreground">Pts</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {tableData.slice(0, 10).map((row) => {
+                  {tableData.map((row) => {
                     const isHome = row.team.id === match.homeTeam.id
                     const isAway = row.team.id === match.awayTeam.id
                     const isHighlighted = isHome || isAway
@@ -498,20 +543,22 @@ export default function MatchDetailPage({ params }: MatchDetailPageProps) {
                             {row.position}
                           </span>
                         </td>
-                        <td className="py-2 flex items-center gap-2">
-                          <div className="w-4 h-4 relative flex-shrink-0">
-                            <Image
-                              src={row.team.logo}
-                              alt={row.team.name}
-                              width={16}
-                              height={16}
-                              className="rounded-full object-cover"
-                              unoptimized
-                            />
+                        <td className="py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 relative flex-shrink-0">
+                              <Image
+                                src={row.team.logo}
+                                alt=""
+                                width={16}
+                                height={16}
+                                className="rounded-full object-cover"
+                                unoptimized
+                              />
+                            </div>
+                            <span className="truncate max-w-[120px] sm:max-w-[180px]">
+                              {row.team.name}
+                            </span>
                           </div>
-                          <span className="truncate max-w-[120px] sm:max-w-[180px]">
-                            {row.team.name}
-                          </span>
                         </td>
                         <td className="py-2 text-center tabular-nums text-muted-foreground">{row.played}</td>
                         <td className="py-2 text-center tabular-nums text-muted-foreground">{row.won}</td>

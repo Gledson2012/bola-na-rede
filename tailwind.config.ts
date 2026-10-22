@@ -1,7 +1,10 @@
 import type { Config } from "tailwindcss"
 
 const config: Config = {
-  darkMode: ["class"],
+  // Segue a preferência do sistema: as variantes `dark:*` do projeto passam a
+  // valer de verdade. Antes o modo era "class" sem que a classe `dark` fosse
+  // aplicada em lugar nenhum, o que deixava todas essas variantes mortas.
+  darkMode: "media",
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -101,6 +104,6 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }
 export default config

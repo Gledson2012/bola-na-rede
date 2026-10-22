@@ -6,11 +6,12 @@ import Image from "next/image"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { TeamDetailSkeleton } from "@/components/Skeleton"
 import { useTeam, useTeamForm, useTeamNext, useTeamLast, useFavorites } from "@/lib/queries"
+import { useToast } from "@/lib/use-toast"
 import {
-  ArrowLeft, Clock, Trophy, MapPin, Calendar, Star, Share2,
-  TrendingUp, Shield, Info, ChevronRight, CheckCircle2, AlertCircle
+  ArrowLeft, Clock, MapPin, Calendar, Star, Share2,
+  TrendingUp, Shield, Info, ChevronRight, CheckCircle2
 } from "lucide-react"
-import { cn, formatTime } from "@/lib/utils"
+import { cn, formatTime, copyToClipboard } from "@/lib/utils"
 
 interface TeamDetailPageProps {
   params: { id: string }
@@ -56,12 +57,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
   const { isFavorite, toggleFavorite } = useFavorites()
 
   const [activeTab, setActiveTab] = useState<"geral" | "sobre" | "jogos">("geral")
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 2500)
-  }
+  const { message: toastMessage, show: showToast } = useToast()
 
   const handleShare = async () => {
     const title = team ? `Perfil do ${team.name}` : "Clube"
@@ -71,20 +67,23 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url })
-      } catch {
-        // Ignored
+      } catch (error) {
+        if (error instanceof Error && error.name !== "AbortError") {
+          showToast("Não foi possível compartilhar.")
+        }
       }
-    } else {
-      await navigator.clipboard.writeText(url)
-      showToast("Link do clube copiado! 📋")
+      return
     }
+
+    const copied = await copyToClipboard(url)
+    showToast(copied ? "Link do clube copiado! 📋" : "Não foi possível copiar o link.")
   }
 
   const loading = teamLoading || formLoading || nextLoading || lastLoading
 
   if (teamError) {
     return (
-      <ErrorBoundary fallback={<ErrorFallback message={teamError.message} onRetry={() => refetch()} />}>
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message={teamError.message} onRetry={() => { reset(); refetch() }} />)}>
         <div className="flex flex-col items-center justify-center py-20 text-center px-4">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
             <Shield className="w-8 h-8 text-muted-foreground" />
@@ -106,7 +105,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   if (loading || !team) {
     return (
-      <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar clube" onRetry={() => refetch()} />}>
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar clube" onRetry={() => { reset(); refetch() }} />)}>
         <div className="flex-1 space-y-4 py-3">
           <TeamDetailSkeleton />
         </div>
@@ -117,7 +116,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
   const favorite = isFavorite(team.id)
 
   return (
-    <ErrorBoundary fallback={<ErrorFallback message="Erro ao renderizar detalhes do time" onRetry={() => refetch()} />}>
+    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao renderizar detalhes do time" onRetry={() => { reset(); refetch() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-16">
         {/* Navigation Bar */}
         <div className="flex items-center justify-between py-2 border-b border-border/80">
@@ -142,6 +141,8 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                   : "border-border text-muted-foreground hover:bg-muted hover:text-amber-500"
               )}
               title={favorite ? "Remover dos favoritos" : "Favoritar time"}
+              aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              aria-pressed={favorite}
             >
               <Star className={cn("w-4 h-4", favorite && "fill-amber-400")} />
             </button>
@@ -150,6 +151,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
               onClick={handleShare}
               className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Compartilhar clube"
+              aria-label="Compartilhar clube"
             >
               <Share2 className="w-4 h-4" />
             </button>
@@ -227,8 +229,16 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center gap-1 border-b border-border text-xs font-semibold">
+        <div
+          role="tablist"
+          aria-label="Seções do clube"
+          className="flex items-center gap-1 border-b border-border text-xs font-semibold"
+        >
           <button
+            role="tab"
+            aria-selected={activeTab === "geral"}
+            aria-controls="tab-geral"
+            id="tab-btn-geral"
             onClick={() => setActiveTab("geral")}
             className={cn(
               "flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
@@ -242,6 +252,10 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
           </button>
 
           <button
+            role="tab"
+            aria-selected={activeTab === "jogos"}
+            aria-controls="tab-jogos"
+            id="tab-btn-jogos"
             onClick={() => setActiveTab("jogos")}
             className={cn(
               "flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
@@ -255,6 +269,10 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
           </button>
 
           <button
+            role="tab"
+            aria-selected={activeTab === "sobre"}
+            aria-controls="tab-sobre"
+            id="tab-btn-sobre"
             onClick={() => setActiveTab("sobre")}
             className={cn(
               "flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
@@ -270,7 +288,12 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
         {/* Tab 1: Visão Geral */}
         {activeTab === "geral" && (
-          <div className="space-y-4">
+          <div
+            id="tab-geral"
+            role="tabpanel"
+            aria-labelledby="tab-btn-geral"
+            className="space-y-4"
+          >
             {/* Next and Last Match Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Next Match */}
@@ -372,9 +395,9 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                     const oppScore = isHome ? m.awayScore : m.homeScore
                     const opponent = isHome ? m.awayTeam : m.homeTeam
 
-                    let statusText = "E"
-                    let statusBg = "bg-amber-500 text-white"
-                    let statusLabel = "Empate"
+                    let statusText = "–"
+                    let statusBg = "bg-muted text-muted-foreground"
+                    let statusLabel = "Sem placar"
 
                     if (myScore !== null && oppScore !== null) {
                       if (myScore > oppScore) {
@@ -385,6 +408,10 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                         statusText = "D"
                         statusBg = "bg-red-600 text-white"
                         statusLabel = "Derrota"
+                      } else {
+                        statusText = "E"
+                        statusBg = "bg-amber-500 text-white"
+                        statusLabel = "Empate"
                       }
                     }
 
@@ -395,7 +422,11 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                         className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-muted/30 hover:bg-muted transition-colors group"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className={cn("w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm", statusBg)}>
+                          <span
+                            title={statusLabel}
+                            aria-label={statusLabel}
+                            className={cn("w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm", statusBg)}
+                          >
                             {statusText}
                           </span>
                           <div>
@@ -429,10 +460,15 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
         {/* Tab 2: Jogos */}
         {activeTab === "jogos" && (
-          <div className="space-y-3">
+          <div
+            id="tab-jogos"
+            role="tabpanel"
+            aria-labelledby="tab-btn-jogos"
+            className="space-y-3"
+          >
             <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Calendário do {team.name}
+                Últimos jogos do {team.name}
               </h3>
               {formMatches.length > 0 ? (
                 <div className="divide-y divide-border/60">
@@ -457,7 +493,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground py-4">Nenhum jogo listado no calendário.</p>
+                <p className="text-xs text-muted-foreground py-4">Nenhum jogo recente disponível.</p>
               )}
             </div>
           </div>
@@ -465,7 +501,12 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
         {/* Tab 3: Sobre o Clube */}
         {activeTab === "sobre" && (
-          <div className="rounded-2xl border border-border bg-card p-4 space-y-4 shadow-sm">
+          <div
+            id="tab-sobre"
+            role="tabpanel"
+            aria-labelledby="tab-btn-sobre"
+            className="rounded-2xl border border-border bg-card p-4 space-y-4 shadow-sm"
+          >
             <div>
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
                 História & Informações

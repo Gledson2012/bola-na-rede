@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Trophy, Newspaper } from "lucide-react"
+import { BarChart3, Users, Trophy, Newspaper } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLiveMatches } from "@/lib/queries"
 
@@ -44,6 +44,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/jogos", label: "Jogos", icon: SoccerBallIcon, showLiveBadge: true },
+  { href: "/analise", label: "Análise", icon: BarChart3 },
   { href: "/times", label: "Times", icon: Users },
   { href: "/classificacao", label: "Tabela", icon: Trophy },
   { href: "/noticias", label: "Notícias", icon: Newspaper },
@@ -56,7 +57,10 @@ export function BottomNav() {
 
   return (
     <div className="fixed bottom-3 left-0 right-0 z-40 max-w-lg mx-auto px-3 pointer-events-none">
-      <nav className="pointer-events-auto rounded-3xl bg-background/85 dark:bg-card/90 backdrop-blur-2xl border border-border/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 transition-all">
+      <nav
+        aria-label="Navegação principal"
+        className="pointer-events-auto rounded-3xl bg-background/85 dark:bg-card/90 backdrop-blur-2xl border border-border/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-1.5 transition-all"
+      >
         <div className="flex items-center justify-around gap-1">
           {navItems.map((item) => {
             const isJogos = item.href === "/jogos"
@@ -80,16 +84,16 @@ export function BottomNav() {
                 <div className="relative">
                   <Icon className={cn("w-4 h-4 mb-0.5", isActive ? "text-white" : "text-muted-foreground")} />
 
-                  {/* Live pulsating dot if live matches exist and this is Jogos */}
+                  {/* Live pulsating dot if live matches exist */}
                   {item.showLiveBadge && liveCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white" />
                     </span>
                   )}
-                </div>
 
-                <span className="leading-none tracking-tight">{item.label}</span>
+                  <span className="leading-none tracking-tight">{item.label}</span>
+                </div>
               </Link>
             )
           })}

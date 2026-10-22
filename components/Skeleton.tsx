@@ -33,15 +33,46 @@ export function MatchCardSkeleton() {
   )
 }
 
-export function TeamCardSkeleton() {
+export function TeamCardSkeleton({
+  showLeague = true,
+  showForm = true,
+  showRecord = true,
+  showPoints = true,
+  showPosition = true,
+}: {
+  showLeague?: boolean
+  showForm?: boolean
+  showRecord?: boolean
+  showPoints?: boolean
+  showPosition?: boolean
+} = {}) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-      <Skeleton className="w-10 h-10 rounded-xl" />
-      <div className="flex-1">
-        <Skeleton className="h-5 w-3/4" />
-        <Skeleton className="h-3 w-1/4 mt-1" />
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-card p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          {showPosition && <Skeleton className="h-5 w-5 rounded-md" />}
+          <Skeleton className="h-[42px] w-[42px] rounded-full" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-3/4" />
+            <div className="flex items-center gap-1.5">
+              <Skeleton className="h-3 w-10" />
+              {showLeague && <Skeleton className="h-3 w-14" />}
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-1.5">
+          {showPoints && <Skeleton className="h-6 w-10 rounded-lg" />}
+          {showForm && (
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-3 w-3 rounded-full" />
+              ))}
+            </div>
+          )}
+          <Skeleton className="h-8 w-8 rounded-xl" />
+        </div>
       </div>
-      <Skeleton className="w-20 h-8 rounded-full" />
+      {showRecord && <Skeleton className="mt-2 h-3 w-24" />}
     </div>
   )
 }
@@ -61,37 +92,47 @@ export function NewsCardSkeleton() {
 
 export function LeagueTableSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="rounded-xl border border-border bg-card overflow-hidden" aria-hidden="true">
       <div className="overflow-x-auto">
         <table className="w-full text-sm text-left divide-y divide-border/50">
           <thead className="bg-muted/40">
             <tr>
-              <th className="px-3 py-3 w-6"><Skeleton className="h-4 w-6" /></th>
-              <th className="px-3 py-3"><Skeleton className="h-4 w-20" /></th>
-              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
-              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
-              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
-              <th className="px-3 py-3 text-right w-5"><Skeleton className="h-4 w-8" /></th>
-              <th className="px-3 py-3 text-right w-6"><Skeleton className="h-4 w-10" /></th>
-              <th className="px-3 py-3 text-right w-6"><Skeleton className="h-4 w-10" /></th>
+              <th className="w-9 py-3 pl-3 pr-1"><Skeleton className="h-4 w-6" /></th>
+              <th className="px-2 py-3"><Skeleton className="h-4 w-20" /></th>
+              <th className="w-9 px-1 py-3"><Skeleton className="h-4 w-6" /></th>
+              <th className="w-7 px-1 py-3"><Skeleton className="h-4 w-5" /></th>
+              <th className="w-8 px-1 py-3"><Skeleton className="h-4 w-5" /></th>
+              <th className="hidden w-14 px-1 py-3 sm:table-cell"><Skeleton className="h-4 w-10" /></th>
+              <th className="hidden w-8 px-1 py-3 lg:table-cell"><Skeleton className="h-4 w-5" /></th>
+              <th className="hidden w-8 px-1 py-3 md:table-cell"><Skeleton className="h-4 w-5" /></th>
+              <th className="hidden w-8 px-1 py-3 md:table-cell"><Skeleton className="h-4 w-5" /></th>
+              <th className="hidden w-8 px-1 py-3 md:table-cell"><Skeleton className="h-4 w-5" /></th>
+              <th className="hidden w-8 px-1 py-3 lg:table-cell"><Skeleton className="h-4 w-5" /></th>
+              <th className="hidden w-8 px-1 py-3 lg:table-cell"><Skeleton className="h-4 w-5" /></th>
+              <th className="w-6 py-3 pr-3" />
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <tr key={i} className="animate-pulse">
-                <td className="px-3 py-2.5"><Skeleton className="h-4 w-6" /></td>
-                <td className="px-3 py-2.5">
+                <td className="py-2.5 pl-3 pr-1"><Skeleton className="h-4 w-6" /></td>
+                <td className="px-2 py-2.5">
                   <div className="flex items-center gap-2">
                     <Skeleton className="w-6 h-6 rounded-full" />
                     <Skeleton className="h-4 w-24" />
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
-                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
-                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
-                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-8" /></td>
-                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-10" /></td>
-                <td className="px-3 py-2.5 text-right"><Skeleton className="h-4 w-10" /></td>
+                <td className="px-1 py-2.5"><Skeleton className="h-4 w-6" /></td>
+                <td className="px-1 py-2.5"><Skeleton className="h-4 w-5" /></td>
+                <td className="px-1 py-2.5"><Skeleton className="h-4 w-5" /></td>
+                <td className="hidden px-1 py-2.5 sm:table-cell"><Skeleton className="h-4 w-10" /></td>
+                <td className="hidden px-1 py-2.5 lg:table-cell"><Skeleton className="h-4 w-5" /></td>
+                <td className="hidden px-1 py-2.5 md:table-cell"><Skeleton className="h-4 w-5" /></td>
+                <td className="hidden px-1 py-2.5 md:table-cell"><Skeleton className="h-4 w-5" /></td>
+                <td className="hidden px-1 py-2.5 md:table-cell"><Skeleton className="h-4 w-5" /></td>
+                <td className="hidden px-1 py-2.5 lg:table-cell"><Skeleton className="h-4 w-5" /></td>
+                <td className="hidden px-1 py-2.5 lg:table-cell"><Skeleton className="h-4 w-5" /></td>
+                <td className="py-2.5 pr-3" />
               </tr>
             ))}
           </tbody>
@@ -176,22 +217,6 @@ export function TeamDetailSkeleton() {
             <div key={i} className="flex-1 rounded-t-lg bg-muted" />
           ))}
         </div>
-      </div>
-    </div>
-  )
-}
-
-export function PageSkeleton({ sections = 3 }: { sections?: number }) {
-  return (
-    <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-border px-3 py-3 safe-area-top shadow-sm animate-pulse">
-        <Skeleton className="h-10 w-3/4 rounded-xl mb-3" />
-        <Skeleton className="h-10 w-full rounded-xl" />
-      </div>
-      <div className="flex-1 overflow-y-auto px-3 pb-24 safe-area-bottom space-y-4">
-        {Array.from({ length: sections }).map((_, i) => (
-          <Skeleton key={i} className="rounded-xl border border-border bg-card p-4 h-32" />
-        ))}
       </div>
     </div>
   )

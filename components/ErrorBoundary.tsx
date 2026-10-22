@@ -5,9 +5,22 @@ import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, AlertTriangle } from "lucide-react"
 
+/**
+ * Fallback pode ser um nó qualquer ou uma função que recebe o `reset` do
+ * boundary. A forma com função é a correta: sem ela o "Tentar novamente"
+ * refaz a query, mas o boundary continua em estado de erro e a tela de
+ * fallback permanece na tela para sempre.
+ */
+export type ErrorFallbackRender = (reset: () => void) => React.ReactNode
+
 interface ErrorBoundaryProps {
   children: React.ReactNode
-  fallback?: React.ReactNode
+  fallback?: React.ReactNode | ErrorFallbackRender
+  /**
+   * Quando estes valores mudam, o boundary limpa o estado de erro. Útil para
+   * que uma falha de rede em um parâmetro da URL não "grude" na tela.
+   */
+  resetKeys?: unknown[]
 }
 
 interface ErrorBoundaryState {
@@ -26,10 +39,29 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     console.error("ErrorBoundary caught:", error, errorInfo)
   }
 
+  componentDidUpdate(prevProps: ErrorBoundaryProps) {
+    if (!this.state.hasError) return
+    const previous = prevProps.resetKeys
+    const current = this.props.resetKeys
+    if (!previous || !current) return
+    const changed =
+      previous.length !== current.length ||
+      previous.some((value, index) => !Object.is(value, current[index]))
+    if (changed) this.reset()
+  }
+
+  reset = () => {
+    this.setState({ hasError: false, error: null })
+  }
+
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback
+      const { fallback } = this.props
+      if (typeof fallback === "function") {
+        return fallback(this.reset)
+      }
+      if (fallback) {
+        return fallback
       }
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -38,7 +70,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <p className="text-muted-foreground text-sm mb-4">
             {this.state.error?.message || "Erro inesperado"}
           </p>
-          <Button onClick={() => this.setState({ hasError: false, error: null })} className="gap-2">
+          <Button onClick={this.reset} className="gap-2">
             <RefreshCw className="w-4 h-4" />
             Tentar novamente
           </Button>

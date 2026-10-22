@@ -1,51 +1,24 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { cn } from "@/lib/utils"
 import type { Team } from "@/types"
-import { ChevronRight, Star, Trophy, Radio } from "lucide-react"
+import { ChevronRight, Star } from "lucide-react"
 import { useFavorites } from "@/lib/queries"
+import { TeamLogo } from "@/components/futebol/TeamLogo"
 
 interface TeamCardProps {
   team: Team
   compact?: boolean
   showFavoriteButton?: boolean
+  showLeague?: boolean
+  showForm?: boolean
+  showRecord?: boolean
+  showPoints?: boolean
+  showPosition?: boolean
 }
 
-function TeamLogo({ src, alt, name, color, size = 42 }: { src?: string; alt: string; name: string; color?: string; size?: number }) {
-  const [error, setError] = useState(false)
-  const initial = name ? name.trim().charAt(0).toUpperCase() : "⚽"
-
-  if (!src || error) {
-    return (
-      <div
-        style={{ width: size, height: size, backgroundColor: color || "#0ea5e9" }}
-        className="rounded-2xl text-white font-black flex items-center justify-center text-sm shadow-sm flex-shrink-0 border border-border"
-        aria-label={alt}
-      >
-        {initial}
-      </div>
-    )
-  }
-
-  return (
-    <div style={{ width: size, height: size }} className="relative flex-shrink-0">
-      <Image
-        src={src}
-        alt={alt}
-        width={size}
-        height={size}
-        className="rounded-2xl object-cover border border-border shadow-sm bg-white p-0.5"
-        onError={() => setError(true)}
-        unoptimized
-      />
-    </div>
-  )
-}
-
-export function TeamCard({ team, compact = false, showFavoriteButton = true }: TeamCardProps) {
+export function TeamCard({ team, compact = false, showFavoriteButton = true, showLeague = true, showForm = true, showRecord = true, showPoints = true, showPosition = true }: TeamCardProps) {
   const { isFavorite, toggleFavorite } = useFavorites()
   const favorite = isFavorite(team.id)
 
@@ -55,6 +28,14 @@ export function TeamCard({ team, compact = false, showFavoriteButton = true }: T
     toggleFavorite(team.id)
   }
 
+  const getFormLabel = (form: ("W" | "D" | "L")[] | undefined) => {
+    if (!form || form.length === 0) return ""
+    const wins = form.filter((f) => f === "W").length
+    const draws = form.filter((f) => f === "D").length
+    const losses = form.filter((f) => f === "L").length
+    return `${wins}V ${draws}E ${losses}D`
+  }
+
   if (compact) {
     return (
       <Link
@@ -62,7 +43,7 @@ export function TeamCard({ team, compact = false, showFavoriteButton = true }: T
         className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-border bg-card hover:bg-muted/50 hover:border-futebol-300 transition-all group"
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <TeamLogo src={team.logo} alt={team.name} name={team.name} color={team.primaryColor} size={28} />
+          <TeamLogo src={team.logo} name={team.name} color={team.primaryColor} size={28} />
           <div className="min-w-0">
             <h4 className="text-xs font-semibold text-foreground truncate group-hover:text-futebol-600 transition-colors">
               {team.name}
@@ -118,7 +99,6 @@ export function TeamCard({ team, compact = false, showFavoriteButton = true }: T
         <div className="flex items-center gap-3 min-w-0">
           <TeamLogo
             src={team.logo}
-            alt={team.name}
             name={team.name}
             color={team.primaryColor}
             size={42}
@@ -163,6 +143,39 @@ export function TeamCard({ team, compact = false, showFavoriteButton = true }: T
               <Star className={cn("w-4 h-4", favorite && "fill-amber-400")} />
             </button>
           )}
+
+          {showLeague && team.competition && (
+            <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center text-xs font-semibold text-futebol-400 group-hover:bg-futebol-50 dark:group-hover:bg-futebol-950 group-hover:text-futebol-600 transition-colors">
+              {team.competition}
+            </div>
+          )}
+
+          {showForm && team.form && team.form.length > 0 ? (
+            <div className="flex items-center gap-1.5 text-[10px] font-medium">
+              {getFormLabel(team.form)}
+            </div>
+          ) : null}
+
+          {showRecord && (team.won !== undefined || team.lost !== undefined) ? (
+            <div className="flex items-center gap-1.5 text-[10px] font-medium">
+              <span className="text-emerald-400">{team.won || 0}</span>
+              <span className="text-amber-400">|</span>
+              <span className="text-red-400">{team.lost || 0}</span>
+            </div>
+          ) : null}
+
+          {showPoints && team.points !== undefined ? (
+            <div className="flex items-center gap-1.5 text-[10px] font-medium">
+              <span className="text-futebol-400">Pt</span>
+              <span className="font-medium text-foreground">{team.points}</span>
+            </div>
+          ) : null}
+
+          {showPosition && team.position !== undefined ? (
+            <div className="flex items-center gap-1.5 text-[10px] font-medium">
+              <span className="text-amber-400">#{team.position}</span>
+            </div>
+          ) : null}
 
           <div className="w-8 h-8 rounded-xl bg-muted/60 flex items-center justify-center text-muted-foreground group-hover:bg-futebol-50 dark:group-hover:bg-futebol-950 group-hover:text-futebol-600 transition-colors">
             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />

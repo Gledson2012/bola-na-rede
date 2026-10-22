@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { MatchCard } from "@/components/futebol/MatchCard"
 import { MatchCardSkeleton } from "@/components/Skeleton"
@@ -18,7 +18,33 @@ type SortOption = "time" | "competition" | "status"
 
 export default function JogosPage() {
   const { data: matches = [], isLoading, error, refetch, isRefetching } = useGlobalMatches()
-  const { isFavorite, isPinnedMatch } = useFavorites()
+  const { favorites, pinnedMatches } = useFavorites()
+
+  // `isFavorite`/`isPinnedMatch` do store são funções estáveis: usá-las como
+  // dependência de `useMemo` faz o memo nunca recalcular quando o estado
+  // muda. Usamos os arrays diretamente (eles mudam de identidade).
+  const isTeamFavorite = useCallback(
+    (teamId: string) => favorites.includes(teamId),
+    [favorites]
+  )
+  const isMatchPinned = useCallback(
+    (matchId: string) => pinnedMatches.includes(matchId),
+    [pinnedMatches]
+  )
+
+  /**
+   * Chave de ordenação por horário. A API entrega apenas a hora ("15:00") e
+   * `Match.date` é fabricada para o dia atual; comparar os dois formatos
+   * diretamente produz uma ordem arbitrária. Normalizamos para "HH:MM".
+   */
+  const matchTimeKey = (match: Match): string => {
+    if (match.kickoff) return match.kickoff
+    const parsed = new Date(match.date)
+    if (Number.isNaN(parsed.getTime())) return "99:99"
+    return `${String(parsed.getHours()).padStart(2, "0")}:${String(
+      parsed.getMinutes()
+    ).padStart(2, "0")}`
+  }
 
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("todos")
   const [activeCompetition, setActiveCompetition] = useState<string | null>(null)
@@ -56,12 +82,15 @@ export default function JogosPage() {
     const live = matches.filter((m) => m.status === "live").length
     const upcoming = matches.filter((m) => m.status === "upcoming").length
     const finished = matches.filter((m) => m.status === "finished").length
-    const pinned = matches.filter((m) =>
-      isPinnedMatch(m.id) || isFavorite(m.homeTeam.id) || isFavorite(m.awayTeam.id)
+    const pinned = matches.filter(
+      (m) =>
+        isMatchPinned(m.id) ||
+        isTeamFavorite(m.homeTeam.id) ||
+        isTeamFavorite(m.awayTeam.id)
     ).length
 
     return { total: matches.length, live, upcoming, finished, pinned }
-  }, [matches, isPinnedMatch, isFavorite])
+  }, [matches, isMatchPinned, isTeamFavorite])
 
   // Toggle collapse for a league section
   const toggleLeagueCollapse = (leagueName: string) => {
@@ -101,8 +130,11 @@ export default function JogosPage() {
     } else if (activeFilter === "finished") {
       result = result.filter((m) => m.status === "finished")
     } else if (activeFilter === "pinned") {
-      result = result.filter((m) =>
-        isPinnedMatch(m.id) || isFavorite(m.homeTeam.id) || isFavorite(m.awayTeam.id)
+      result = result.filter(
+        (m) =>
+          isMatchPinned(m.id) ||
+          isTeamFavorite(m.homeTeam.id) ||
+          isTeamFavorite(m.awayTeam.id)
       )
     }
 
@@ -115,23 +147,32 @@ export default function JogosPage() {
     result = [...result].sort((a, b) => {
       // Pinned matches come first if viewing all
       if (activeFilter !== "pinned") {
-        const aPinned = isPinnedMatch(a.id) || isFavorite(a.homeTeam.id) || isFavorite(a.awayTeam.id)
-        const bPinned = isPinnedMatch(b.id) || isFavorite(b.homeTeam.id) || isFavorite(b.awayTeam.id)
+        const aPinned =
+          isMatchPinned(a.id) ||
+          isTeamFavorite(a.homeTeam.id) ||
+          isTeamFavorite(a.awayTeam.id)
+        const bPinned =
+          isMatchPinned(b.id) ||
+          isTeamFavorite(b.homeTeam.id) ||
+          isTeamFavorite(b.awayTeam.id)
         if (aPinned && !bPinned) return -1
         if (!aPinned && bPinned) return 1
       }
 
       switch (sortBy) {
-        case "time": {
-          const aTime = a.kickoff || a.date
-          const bTime = b.kickoff || b.date
-          return aTime.localeCompare(bTime)
-        }
+        case "time":
+          return matchTimeKey(a).localeCompare(matchTimeKey(b))
         case "competition":
-          return (a.competition || "").localeCompare(b.competition || "", "pt-BR")
+          return (
+            (a.competition || "").localeCompare(b.competition || "", "pt-BR") ||
+            matchTimeKey(a).localeCompare(matchTimeKey(b))
+          )
         case "status": {
           const order: Record<string, number> = { live: 0, upcoming: 1, finished: 2 }
-          return (order[a.status] ?? 3) - (order[b.status] ?? 3)
+          return (
+            (order[a.status] ?? 3) - (order[b.status] ?? 3) ||
+            matchTimeKey(a).localeCompare(matchTimeKey(b))
+          )
         }
         default:
           return 0
@@ -139,7 +180,15 @@ export default function JogosPage() {
     })
 
     return result
-  }, [matches, search, activeFilter, activeCompetition, sortBy, isPinnedMatch, isFavorite])
+  }, [
+    matches,
+    search,
+    activeFilter,
+    activeCompetition,
+    sortBy,
+    isMatchPinned,
+    isTeamFavorite,
+  ])
 
   // Separate pinned matches from the rest if in "todos" view
   const { pinnedSectionMatches, groupedByCompetition } = useMemo(() => {
@@ -148,10 +197,16 @@ export default function JogosPage() {
 
     if (activeFilter === "todos" && !search && !activeCompetition) {
       pinnedList = processedMatches.filter(
-        (m) => isPinnedMatch(m.id) || isFavorite(m.homeTeam.id) || isFavorite(m.awayTeam.id)
+        (m) =>
+          isMatchPinned(m.id) ||
+          isTeamFavorite(m.homeTeam.id) ||
+          isTeamFavorite(m.awayTeam.id)
       )
       restList = processedMatches.filter(
-        (m) => !isPinnedMatch(m.id) && !isFavorite(m.homeTeam.id) && !isFavorite(m.awayTeam.id)
+        (m) =>
+          !isMatchPinned(m.id) &&
+          !isTeamFavorite(m.homeTeam.id) &&
+          !isTeamFavorite(m.awayTeam.id)
       )
     }
 
@@ -176,27 +231,43 @@ export default function JogosPage() {
       pinnedSectionMatches: pinnedList,
       groupedByCompetition: sortedGroups,
     }
-  }, [processedMatches, activeFilter, search, activeCompetition, isPinnedMatch, isFavorite])
+  }, [
+    processedMatches,
+    activeFilter,
+    search,
+    activeCompetition,
+    isMatchPinned,
+    isTeamFavorite,
+  ])
 
   // Keyboard navigation shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      const target = e.target as HTMLElement | null
+      // Não sequestra o teclado enquanto o usuário digita, navega num select ou
+      // usa atalhos do navegador/sistema (Ctrl/Alt/Meta + tecla).
+      if (
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey ||
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+      ) {
+        return
+      }
 
       switch (e.key) {
         case "r":
         case "R":
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault()
-            refetch()
-          }
+          e.preventDefault()
+          refetch()
           break
         case "f":
         case "F":
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault()
-            searchInputRef.current?.focus()
-          }
+          e.preventDefault()
+          searchInputRef.current?.focus()
           break
         case "1": setActiveFilter("todos"); break
         case "2": setActiveFilter("live"); break
@@ -242,7 +313,7 @@ export default function JogosPage() {
 
   if (isLoading) {
     return (
-      <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar partidas" onRetry={() => refetch()} />}>
+      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partidas" onRetry={() => { reset(); refetch() }} />)}>
         <div className="flex flex-col h-full space-y-4 py-3">
           <div className="space-y-2 px-1">
             <div className="h-10 rounded-2xl bg-muted animate-pulse" />
@@ -263,7 +334,7 @@ export default function JogosPage() {
   }
 
   return (
-    <ErrorBoundary fallback={<ErrorFallback message="Erro ao carregar partidas" onRetry={() => refetch()} />}>
+    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partidas" onRetry={() => { reset(); refetch() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-12">
         {/* Top Header Card with Quick Stats & Auto-Refresh */}
         <div className="rounded-2xl bg-gradient-to-br from-futebol-900 via-futebol-800 to-futebol-950 text-white p-4 shadow-lg border border-futebol-700/50 relative overflow-hidden">
@@ -310,6 +381,7 @@ export default function JogosPage() {
           <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-white/15 text-center">
             <button
               onClick={() => setActiveFilter("todos")}
+              aria-pressed={activeFilter === "todos"}
               className={cn(
                 "p-1.5 rounded-xl transition-all",
                 activeFilter === "todos" ? "bg-white/20 ring-1 ring-white/40" : "hover:bg-white/10"
@@ -321,6 +393,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("live")}
+              aria-pressed={activeFilter === "live"}
               className={cn(
                 "p-1.5 rounded-xl transition-all",
                 activeFilter === "live" ? "bg-red-500/30 ring-1 ring-red-400" : "hover:bg-white/10"
@@ -335,6 +408,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("upcoming")}
+              aria-pressed={activeFilter === "upcoming"}
               className={cn(
                 "p-1.5 rounded-xl transition-all",
                 activeFilter === "upcoming" ? "bg-white/20 ring-1 ring-white/40" : "hover:bg-white/10"
@@ -346,6 +420,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("pinned")}
+              aria-pressed={activeFilter === "pinned"}
               className={cn(
                 "p-1.5 rounded-xl transition-all",
                 activeFilter === "pinned" ? "bg-amber-400/20 ring-1 ring-amber-400" : "hover:bg-white/10"
@@ -388,6 +463,7 @@ export default function JogosPage() {
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
             <button
               onClick={() => setActiveFilter("todos")}
+              aria-pressed={activeFilter === "todos"}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
                 activeFilter === "todos"
@@ -407,6 +483,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("live")}
+              aria-pressed={activeFilter === "live"}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
                 activeFilter === "live"
@@ -426,6 +503,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("upcoming")}
+              aria-pressed={activeFilter === "upcoming"}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
                 activeFilter === "upcoming"
@@ -445,6 +523,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("finished")}
+              aria-pressed={activeFilter === "finished"}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
                 activeFilter === "finished"
@@ -464,6 +543,7 @@ export default function JogosPage() {
 
             <button
               onClick={() => setActiveFilter("pinned")}
+              aria-pressed={activeFilter === "pinned"}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
                 activeFilter === "pinned"
@@ -555,7 +635,7 @@ export default function JogosPage() {
           </div>
 
           {/* Active Filters Summary line & Reset button */}
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-foreground">
                 {processedMatches.length} {processedMatches.length === 1 ? "partida" : "partidas"} encontrada(s)
@@ -563,20 +643,46 @@ export default function JogosPage() {
               {activeCompetition && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-futebol-50 dark:bg-futebol-950/60 text-futebol-700 dark:text-futebol-300 font-medium">
                   {activeCompetition}
-                  <button onClick={() => setActiveCompetition(null)} className="hover:text-red-500">×</button>
+                  <button
+                    onClick={() => setActiveCompetition(null)}
+                    className="hover:text-red-500"
+                    aria-label={`Remover filtro de ${activeCompetition}`}
+                  >
+                    ×
+                  </button>
                 </span>
               )}
             </div>
 
-            {hasActiveFilters && (
-              <button
-                onClick={handleResetFilters}
-                className="flex items-center gap-1 text-[11px] text-futebol-600 hover:text-futebol-700 font-semibold transition-colors"
+            <div className="ml-auto flex items-center gap-2">
+              <label htmlFor="games-sort" className="text-[11px]">
+                Ordenar:
+              </label>
+              <select
+                id="games-sort"
+                value={sortBy}
+                onChange={(event) => {
+                  const value = event.target.value
+                  if (value === "time" || value === "status" || value === "competition") {
+                    setSortBy(value)
+                  }
+                }}
+                className="max-w-[142px] rounded-lg border border-border bg-card px-2 py-1.5 text-[11px] font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-futebol-500/30"
               >
-                <X className="w-3 h-3" />
-                <span>Limpar filtros</span>
-              </button>
-            )}
+                <option value="time">Horário</option>
+                <option value="status">Status do jogo</option>
+                <option value="competition">Campeonato</option>
+              </select>
+              {hasActiveFilters && (
+                <button
+                  onClick={handleResetFilters}
+                  className="flex items-center gap-1 text-[11px] text-futebol-600 hover:text-futebol-700 font-semibold transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                  <span>Limpar</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

@@ -17,7 +17,20 @@ async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { Accept: "application/json", ...init?.headers },
     cache: "no-store",
   })
-  if (!res.ok) throw new Error(`API error: ${res.status} ${path}`)
+  if (!res.ok) {
+    // A API upstream devolve `{ code, message }`; a mensagem ajuda a distinguir
+    // "partida encerrada não está mais disponível" de uma falha real.
+    let detail = ""
+    try {
+      const body = (await res.json()) as { message?: unknown }
+      if (typeof body.message === "string" && body.message.trim()) {
+        detail = ` — ${body.message.trim()}`
+      }
+    } catch {
+      // Corpo não-JSON: mantém a mensagem padrão.
+    }
+    throw new Error(`API error: ${res.status}${detail}`)
+  }
   return res.json()
 }
 
@@ -26,11 +39,26 @@ export interface ApiMatchDetails extends ApiMatch {
   events?: ApiMatchEvent[]
 }
 
+/** Shape parcial do time no upstream: nem todos os campos vêm em todas as rotas. */
+export interface ApiTeamLike {
+  id?: string
+  name?: string
+  shortName?: string
+  logo?: string
+  badge?: string
+  color?: string
+  matchesToday?: number
+  liveMatches?: number
+  description?: string
+  founded?: number | string
+  venue?: unknown
+}
+
 export interface ApiMatchEvent {
   id: string
   minute: number | null
   type: string
-  team?: ApiTeam | null
+  team?: ApiTeamLike | null
   player: string | null
   detail: string | null
 }
@@ -50,33 +78,59 @@ export interface ApiStanding {
 }
 
 export const api = {
-  teams: () => fetchApi<ApiTeam[]>(`/teams`),
-  teamDetails: (id: string) => fetchApi<any>(`/teams/${id}`),
+  teams: () => fetchApi<ApiTeamLike[]>("/teams"),
+  teamDetails: (id: string) => fetchApi<ApiTeamLike>(`/teams/${id}`),
   teamForm: (id: string, limit = 10) =>
     fetchApi<ApiMatch[]>(`/teams/${id}/form?limit=${limit}`),
   teamNext: (id: string) => fetchApi<ApiMatch | null>(`/teams/${id}/next`),
   teamLast: (id: string) => fetchApi<ApiMatch | null>(`/teams/${id}/last`),
-  teamStats: (id: string) => fetchApi<any>(`/teams/${id}/stats`),
+  teamStats: (id: string) => fetchApi<unknown>(`/teams/${id}/stats`),
 
-  matchesToday: () => fetchApi<ApiMatch[]>(`/matches/today`),
-  matchesLive: () => fetchApi<ApiMatch[]>(`/matches/live`),
-  matchesGlobal: () => fetchApi<ApiMatch[]>(`/matches/global`),
+  matchesToday: () => fetchApi<ApiMatch[]>("/matches/today"),
+  matchesLive: () => fetchApi<ApiMatch[]>("/matches/live"),
+  matchesGlobal: () => fetchApi<ApiMatch[]>("/matches/global"),
   matchById: (id: string) => fetchApi<ApiMatchDetails>(`/matches/${id}`),
 
-  competitions: () => fetchApi<any[]>(`/competitions`),
+  competitions: () => fetchApi<CompetitionDto[]>("/competitions"),
   competitionTable: (id: string) =>
     fetchApi<ApiStanding[]>(`/competitions/${id}/table`),
 
-  news: () => fetchApi<ApiNews[]>(`/news`),
-  newsCategories: () => fetchApi<any[]>(`/news/categories`),
+  news: () => fetchApi<ApiNews[]>("/news"),
+  newsCategories: () => fetchApi<NewsCategoryDto[]>("/news/categories"),
+}
+
+export interface CompetitionDto {
+  id?: string
+  name?: string
+  shortName?: string
+  totalMatches?: number
+  liveMatches?: number
+  upcomingMatches?: number
+  finishedMatches?: number
+}
+
+export interface NewsCategoryDto {
+  id?: string
+  name?: string
+  slug?: string
 }
 
 // Mapeadores da API para os tipos internos do app
 
-export function mapApiTeamToTeam(t: any): Team {
+function parseVenue(value: unknown): Team["venue"] {
+  if (!value || typeof value !== "object") return undefined
+  const venue = value as { name?: unknown; city?: unknown; capacity?: unknown }
   return {
-    id: t.id,
-    name: t.name,
+    name: typeof venue.name === "string" ? venue.name : undefined,
+    city: typeof venue.city === "string" ? venue.city : undefined,
+    capacity: typeof venue.capacity === "number" ? venue.capacity : undefined,
+  }
+}
+
+export function mapApiTeamToTeam(t: ApiTeamLike): Team {
+  return {
+    id: t.id ?? "",
+    name: t.name ?? "",
     shortName: t.shortName || (t.name ? t.name.slice(0, 3).toUpperCase() : ""),
     logo: t.logo || t.badge || "https://a.espncdn.com/i/teamlogos/soccer/500/default-team-logo-500.png",
     primaryColor: t.color || "#0ea5e9",
@@ -84,9 +138,9 @@ export function mapApiTeamToTeam(t: any): Team {
     matchesToday: t.matchesToday ?? 0,
     liveMatches: t.liveMatches ?? 0,
     description: t.description || undefined,
-    founded: t.founded || undefined,
+    founded: typeof t.founded === "number" ? t.founded : undefined,
     badge: t.badge || undefined,
-    venue: t.venue || undefined,
+    venue: parseVenue(t.venue),
   }
 }
 
@@ -116,8 +170,8 @@ function toMatchMinute(seconds?: number | null): number | null {
 export function mapApiMatchToMatch(m: ApiMatch): Match {
   return {
     id: m.id,
-    homeTeam: mapApiTeamToTeam(m.home as any),
-    awayTeam: mapApiTeamToTeam(m.away as any),
+    homeTeam: mapApiTeamToTeam(m.home),
+    awayTeam: mapApiTeamToTeam(m.away),
     homeScore: m.homeScore,
     awayScore: m.awayScore,
     status: m.status,
@@ -131,9 +185,9 @@ export function mapApiMatchToMatch(m: ApiMatch): Match {
   }
 }
 
-export function mapApiMatchToMatchDetail(m: any): MatchDetail {
+export function mapApiMatchToMatchDetail(m: ApiMatchDetails): MatchDetail {
   const match = mapApiMatchToMatch(m)
-  const events: MatchEvent[] = (m.events || []).map((e: any) => ({
+  const events: MatchEvent[] = (m.events || []).map((e) => ({
     id: e.id,
     minute: e.minute,
     type: e.type,
@@ -155,7 +209,10 @@ export function mapApiNewsToNews(n: ApiNews): News {
     month: "short",
     year: "numeric",
   })
-  const readTime = Math.ceil((n.summary?.split(" ").length || 100) / 200) + " min"
+  // O tempo de leitura usa o texto mais longo disponível: o conteúdo integral
+  // quando a fonte fornece, senão o resumo.
+  const words = (n.content || n.summary || "").split(/\s+/).filter(Boolean).length
+  const readTime = `${Math.max(1, Math.ceil(words / 200))} min`
   return {
     id: n.id,
     title: n.title,
@@ -166,6 +223,8 @@ export function mapApiNewsToNews(n: ApiNews): News {
     readTime,
     url: n.url,
     provider: n.provider || "Notícias",
+    publishedAt: n.publishedAt,
+    content: n.content ?? null,
   }
 }
 
