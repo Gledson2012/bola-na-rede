@@ -113,6 +113,14 @@
   }
 }
 
+/* Renderiza sob demanda o que está fora da viewport: em listas longas (vários
+   campeonatos) o navegador deixa de calcular layout/pintura das seções ocultas.
+   `auto <tamanho>` guarda a altura real depois da primeira renderização. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}
+
 /* Respeita quem pediu menos movimento no sistema operacional. */
 @media (prefers-reduced-motion: reduce) {
   html {

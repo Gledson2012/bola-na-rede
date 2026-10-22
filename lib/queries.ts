@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { api, fetchWithTimeout, mapApiMatchToMatch, mapApiMatchToMatchDetail, mapApiTeamToTeam, mapApiNewsToNews, mapApiStandingToStanding } from "@/lib/api"
-import type { NewsWithMatches, RelatedMatch } from "@/types"
+import type { Match, News, NewsWithMatches, RelatedMatch } from "@/types"
 import type { AnalysisResponse } from "@/lib/prediction"
 import { useFavoritesStore } from "@/lib/store"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
@@ -30,12 +30,23 @@ export function useTodayMatches() {
   })
 }
 
-export function useGlobalMatches() {
+/**
+ * Lista global de partidas.
+ *
+ * `initialMatches` vem do server component da página: o HTML já sai com os
+ * jogos (em vez de skeleton) e o cliente revalida em seguida. O timestamp 0
+ * marca o dado inicial como vencido de propósito, para o refetch acontecer
+ * no mount sem esconder o conteúdo já renderizado.
+ */
+export function useGlobalMatches(initialMatches?: Match[]) {
   return useQuery({
     queryKey: ["matches", "global"],
     queryFn: () => api.matchesGlobal().then((r) => r.map(mapApiMatchToMatch)),
     refetchInterval: 60_000,
     staleTime: 30_000,
+    ...(initialMatches && initialMatches.length > 0
+      ? { initialData: initialMatches, initialDataUpdatedAt: 0 }
+      : {}),
   })
 }
 
@@ -188,11 +199,14 @@ export function useCompetitionTable(competitionId?: string) {
 }
 
 // ===== NEWS =====
-export function useNews() {
+export function useNews(initialNews?: News[]) {
   return useQuery({
     queryKey: ["news"],
     queryFn: () => api.news().then((r) => r.map(mapApiNewsToNews)),
     staleTime: 5 * 60_000,
+    ...(initialNews && initialNews.length > 0
+      ? { initialData: initialNews, initialDataUpdatedAt: 0 }
+      : {}),
   })
 }
 

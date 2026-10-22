@@ -44,6 +44,7 @@ components/
 ├── providers/              # React Query + reidratação do Zustand
 ├── ui/                     # Button
 ├── ErrorBoundary.tsx
+├── ServiceWorkerRegistration.tsx
 └── Skeleton.tsx
 lib/
 ├── api.ts                  # Cliente da API (com timeout) + mapeadores
@@ -61,7 +62,7 @@ lib/
 ├── web-push.ts             # Inscrições e envio de notificações
 └── *.test.ts               # Testes das regras de domínio (Vitest)
 types/index.ts              # Tipos globais (Team, Match, Standing, News)
-public/                     # Ícones PWA (PNG/maskable) e service worker
+public/                     # Ícones PWA, página offline e service worker
 .github/workflows/          # CI e agendamento do monitor a cada 5 minutos
 ```
 
@@ -146,13 +147,20 @@ request.
 
 - Headers de segurança (HSTS, `nosniff`, `X-Frame-Options`, Permissions-Policy e
   um subconjunto conservador de CSP) aplicados a todas as rotas.
+- As telas `/jogos` e `/noticias` renderizam a lista inicial no servidor (ISR) e
+  o cliente revalida em seguida: o primeiro paint mostra conteúdo, não skeleton.
 - `/api/analise` e `/api/noticias` são respostas globais cacheadas na CDN
   (`revalidate` + `s-maxage`), reduzindo execuções do modelo por visitante.
+- O service worker guarda assets imutáveis (`/_next/static/*`) e mostra
+  `public/offline.html` quando a navegação falha por falta de rede. Ele é
+  registrado automaticamente apenas no build de produção.
 - O otimizador de imagens do Next está desligado (`images.unoptimized`), pois as
   imagens vêm de hosts variados; isso fecha o endpoint `/_next/image`.
 - Requisições do cliente têm timeout com mensagem amigável em caso de rede ruim.
 - O estado persistido tem versão, migração e teto por lista para não estourar o
   `localStorage`.
+- Listas longas usam `content-visibility: auto` para não calcular layout do que
+  está fora da tela.
 
 ## 📱 Android (Capacitor)
 

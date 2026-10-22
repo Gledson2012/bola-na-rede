@@ -3,6 +3,7 @@ import "./globals.css"
 import { Header } from "@/components/layout/Header"
 import { BottomNav } from "@/components/layout/BottomNav"
 import { Providers } from "@/components/providers/Providers"
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration"
 
 const SITE_URL =
   process.env.APP_PUBLIC_URL?.replace(/\/$/, "") ||
@@ -77,6 +78,7 @@ export default function RootLayout({
     <html lang="pt-BR" className="h-full antialiased">
       <body className="font-sans h-full bg-slate-950 text-slate-200 flex justify-center">
         <Providers>
+          <ServiceWorkerRegistration />
           {/* Mobile-first modern phone frame container */}
           <div className="w-full max-w-lg min-h-[100dvh] flex flex-col bg-background text-foreground relative shadow-2xl overflow-x-hidden border-x border-border/40">
             <a
