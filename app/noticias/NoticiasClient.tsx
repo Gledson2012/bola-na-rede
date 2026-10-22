@@ -261,9 +261,9 @@ export default function NoticiasClient({
             {latestUpdate && (
               <>
                 <span className="text-white/40">•</span>
-                <span suppressHydrationWarning>
+                <span>
                   Última em{" "}
-                  <strong className="text-white">
+                  <strong className="text-white" suppressHydrationWarning>
                     {formatRelativeTime(latestUpdate)}
                   </strong>
                 </span>
