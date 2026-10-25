@@ -5,6 +5,8 @@
  * competições, países, categorias de notícia e os lances da partida.
  */
 
+import { classifyEvent } from "@/lib/events"
+
 function normalize(value: string): string {
   return value
     .normalize("NFD")
@@ -176,13 +178,21 @@ export type MatchEventKind = "goal" | "ownGoal" | "red" | "yellow" | "sub" | "ot
 /** Classificação visual do lance (cor/ícone), aceitando o texto em EN ou PT. */
 export function eventKind(type?: string | null): MatchEventKind {
   const value = normalize(type ?? "")
+  const kind = classifyEvent(type)
 
-  if (value.includes("own goal") || value.includes("gol contra")) return "ownGoal"
-  if (value.includes("second yellow") || value.includes("segundo amarelo")) {
+  // A classificação de domínio decide gols, pênaltis e expulsões; aqui só
+  // traduzimos para os estilos visuais que a interface conhece.
+  if (kind === "own_goal") return "ownGoal"
+  if (kind === "red_card") return "red"
+  if (kind === "goal" || kind === "penalty_goal" || kind === "penalty_awarded") {
+    return "goal"
+  }
+  // Pênalti perdido/defendido não é gol.
+  if (kind === "penalty_missed" || kind === "penalty_saved") return "other"
+
+  if (value.includes("segundo amarelo") || value.includes("second yellow")) {
     return "red"
   }
-  if (value.includes("red") || value.includes("vermelho")) return "red"
-  if (value.includes("missed") || value.includes("perdido")) return "other"
   if (
     value.includes("yellow") ||
     value.includes("amarelo") ||
@@ -196,14 +206,6 @@ export function eventKind(type?: string | null): MatchEventKind {
     value === "sub"
   ) {
     return "sub"
-  }
-  if (
-    value.includes("goal") ||
-    value.includes("gol") ||
-    value.includes("penalt") ||
-    value.includes("penalti")
-  ) {
-    return "goal"
   }
   return "other"
 }

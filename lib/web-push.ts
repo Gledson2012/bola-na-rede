@@ -7,7 +7,7 @@ import {
   subscriptionKey,
 } from "@/lib/live-monitor-storage"
 
-interface StoredSubscription {
+export interface StoredSubscription {
   endpoint: string
   expirationTime: number | null
   keys: { p256dh: string; auth: string }
@@ -25,12 +25,25 @@ export interface PushDeliveryResult {
   sent: number
   removed: number
   failed: number
+  /** IDs das assinaturas que receberam a notificação. */
+  sentIds: string[]
+  /** IDs removidas por estarem expiradas (404/410). */
+  removedIds: string[]
+  /** IDs que falharam temporariamente e podem ser tentadas de novo. */
+  failedIds: string[]
 }
 
 /** Quantidade de envios simultâneos ao provedor de push. */
 const SEND_CONCURRENCY = 20
 /** Quantidade de chaves lidas por MGET. */
 const MGET_BATCH = 100
+/**
+ * Validade do registro de assinatura.
+ *
+ * O navegador renova a inscrição ao abrir o app; sem TTL, inscrições
+ * abandonadas (ou criadas em massa) ficariam no Redis para sempre.
+ */
+export const SUBSCRIPTION_TTL_SECONDS = 90 * 24 * 60 * 60
 
 export function hasPushConfiguration(): boolean {
   return Boolean(
@@ -53,6 +66,8 @@ export async function saveSubscription(
     "SET",
     `live-monitor:subscription:${id}`,
     JSON.stringify(subscription),
+    "EX",
+    SUBSCRIPTION_TTL_SECONDS,
   ])
   await redisCommand(["SADD", "live-monitor:subscriptions", id])
 }
@@ -120,9 +135,9 @@ export async function sendPushToSubscribers(
   webpush.setVapidDetails(subject, publicKey, privateKey)
 
   const entries = Array.from(subscriptions.entries())
-  let sent = 0
-  let removed = 0
-  let failed = 0
+  const sentIds: string[] = []
+  const removedIds: string[] = []
+  const failedIds: string[] = []
 
   for (let start = 0; start < entries.length; start += SEND_CONCURRENCY) {
     const batch = entries.slice(start, start + SEND_CONCURRENCY)
@@ -135,7 +150,7 @@ export async function sendPushToSubscribers(
             JSON.stringify(payload),
             { TTL: 300, urgency: "high" }
           )
-          return "sent" as const
+          return { id, status: "sent" as const }
         } catch (error) {
           const statusCode =
             typeof error === "object" && error !== null && "statusCode" in error
@@ -147,20 +162,27 @@ export async function sendPushToSubscribers(
             } catch (removalError) {
               console.error(`[push] falha ao remover assinatura ${id}:`, removalError)
             }
-            return "removed" as const
+            return { id, status: "removed" as const }
           }
           console.error(`[push] falha ao enviar notificação ${id}:`, error)
-          return "failed" as const
+          return { id, status: "failed" as const }
         }
       })
     )
 
-    for (const outcome of outcomes) {
-      if (outcome === "sent") sent++
-      else if (outcome === "removed") removed++
-      else failed++
+    for (const { id, status } of outcomes) {
+      if (status === "sent") sentIds.push(id)
+      else if (status === "removed") removedIds.push(id)
+      else failedIds.push(id)
     }
   }
 
-  return { sent, removed, failed }
+  return {
+    sent: sentIds.length,
+    removed: removedIds.length,
+    failed: failedIds.length,
+    sentIds,
+    removedIds,
+    failedIds,
+  }
 }

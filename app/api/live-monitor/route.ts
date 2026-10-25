@@ -12,9 +12,22 @@ import {
 } from "@/lib/live-monitor-storage"
 import { mapWithConcurrency } from "@/lib/concurrency"
 import {
+  classifyEvent,
+  eventLabel,
+  isMonitorableEvent,
+} from "@/lib/events"
+import {
+  parseSnapshot,
+  planDeliveries,
+  recordDelivery,
+  serializeSnapshot,
+  type MonitorSnapshot,
+} from "@/lib/live-monitor-events"
+import {
   hasPushConfiguration,
   loadSubscriptions,
   sendPushToSubscribers,
+  type StoredSubscription,
 } from "@/lib/web-push"
 import { getUpstreamJson } from "@/lib/upstream"
 import type { ApiMatch, Match, MatchEvent } from "@/types"
@@ -22,23 +35,12 @@ import type { ApiMatch, Match, MatchEvent } from "@/types"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-/** Quantas vezes o mesmo evento pode ser reenviado antes de ser descartado. */
-const MAX_DELIVERY_ATTEMPTS = 3
-
 interface MonitorEvent {
   id: string
   team: string
   type: string
   minute: number | null
   player: string | null
-}
-
-interface StoredSnapshot {
-  /** IDs dos eventos já notificados com sucesso. */
-  eventIds: string[]
-  /** Tentativas de entrega dos eventos que ainda não foram confirmados. */
-  attempts: Record<string, number>
-  updatedAt: string
 }
 
 function isAuthorized(request: NextRequest): boolean {
@@ -68,27 +70,22 @@ function cleanText(value: string, maxLength = 70): string {
 }
 
 function monitorableEvents(events: MatchEvent[]): MonitorEvent[] {
-  return events
-    .filter((event) => {
-      const type = event.type.toLowerCase()
-      return type.includes("goal") || type.includes("red") || type.includes("penalty")
-    })
-    .map((event) => ({
-      id: event.id,
-      team: cleanText(event.team?.name ?? "Time não identificado"),
-      type: event.type.toLowerCase().includes("red")
-        ? "Cartão vermelho"
-        : event.type.toLowerCase().includes("penalty") &&
-            event.type.toLowerCase().includes("missed")
-          ? "Pênalti perdido"
-        : event.type.toLowerCase().includes("own goal")
-          ? "Gol contra"
-          : event.type.toLowerCase().includes("penalty")
-            ? "Gol de pênalti"
-            : "Gol",
-      minute: event.minute,
-      player: event.player ? cleanText(event.player, 50) : null,
-    }))
+  return events.flatMap((event) => {
+    // Classificação única (gols, pênaltis e expulsões). Um pênalti apenas
+    // marcado vira "Pênalti marcado", nunca "Gol de pênalti".
+    const kind = classifyEvent(event.type)
+    if (!isMonitorableEvent(kind)) return []
+
+    return [
+      {
+        id: event.id,
+        team: cleanText(event.team?.name ?? "Time não identificado"),
+        type: eventLabel(kind),
+        minute: event.minute,
+        player: event.player ? cleanText(event.player, 50) : null,
+      },
+    ]
+  })
 }
 
 function deterministicSummary(events: MonitorEvent[]): string {
@@ -163,32 +160,19 @@ async function summarizeWithOpenRouter(
   }
 }
 
-async function loadSnapshot(matchId: string): Promise<StoredSnapshot | null> {
+async function loadSnapshot(matchId: string): Promise<MonitorSnapshot> {
   const value = await redisCommand<string | null>([
     "GET",
     `live-monitor:match:${matchId}`,
   ])
-  if (!value) return null
-  try {
-    const parsed = JSON.parse(value) as Partial<StoredSnapshot>
-    return {
-      eventIds: Array.isArray(parsed.eventIds) ? parsed.eventIds : [],
-      attempts:
-        parsed.attempts && typeof parsed.attempts === "object"
-          ? parsed.attempts
-          : {},
-      updatedAt: parsed.updatedAt ?? new Date().toISOString(),
-    }
-  } catch {
-    return null
-  }
+  return parseSnapshot(value)
 }
 
-async function saveSnapshot(matchId: string, snapshot: StoredSnapshot) {
+async function saveSnapshot(matchId: string, snapshot: MonitorSnapshot) {
   await redisCommand([
     "SET",
     `live-monitor:match:${matchId}`,
-    JSON.stringify(snapshot),
+    serializeSnapshot(snapshot),
     "EX",
     604800,
   ])
@@ -246,7 +230,7 @@ export async function POST(request: NextRequest) {
       let notificationFailures = 0
       let aiSummaries = 0
       let deterministicSummaries = 0
-      const processedMatches: string[] = []
+      const processedMatches = new Set<string>()
 
       // As assinaturas são carregadas uma vez e reutilizadas por todas as
       // partidas: antes cada partida relia o conjunto completo do Redis.
@@ -260,21 +244,47 @@ export async function POST(request: NextRequest) {
         if (!result) continue
         const { match, detail } = result
         const events = monitorableEvents(detail.events)
+        const byId = new Map(events.map((event) => [event.id, event]))
+        const subscribers = await getSubscriptions()
 
-        const previous = await loadSnapshot(match.id)
-        const confirmedIds = new Set(previous?.eventIds ?? [])
-        const attempts: Record<string, number> = { ...(previous?.attempts ?? {}) }
-
-        // Eventos ainda não confirmados e dentro do limite de tentativas.
-        const pendingEvents = events.filter(
-          (event) =>
-            !confirmedIds.has(event.id) &&
-            (attempts[event.id] ?? 0) < MAX_DELIVERY_ATTEMPTS
+        // Plano por assinatura: cada uma recebe só os eventos que ainda não
+        // recebeu. Na prática vira um único push; após falha parcial, apenas
+        // quem falhou é tentado de novo.
+        let snapshot = await loadSnapshot(match.id)
+        const plan = planDeliveries(
+          events,
+          snapshot,
+          Array.from(subscribers.keys())
         )
 
-        if (pendingEvents.length > 0) {
-          eventsDetected += pendingEvents.length
-          const { summary, usedAi } = await summarizeWithOpenRouter(match, pendingEvents)
+        if (plan.settledEventIds.length > 0) {
+          // Sem destinatários ou tentativas esgotadas: confirma para não
+          // reenviar depois (inclusive para quem assinar mais tarde).
+          snapshot = recordDelivery(snapshot, plan.settledEventIds, {
+            sentIds: [],
+            removedIds: [],
+            failedIds: [],
+          })
+        }
+
+        for (const group of plan.groups) {
+          const groupEvents = group.eventIds
+            .map((id) => byId.get(id))
+            .filter((event): event is MonitorEvent => Boolean(event))
+          if (groupEvents.length === 0) continue
+
+          const recipients = new Map<string, StoredSubscription>()
+          for (const id of group.recipients) {
+            const subscription = subscribers.get(id)
+            if (subscription) recipients.set(id, subscription)
+          }
+          if (recipients.size === 0) continue
+
+          eventsDetected += groupEvents.length
+          const { summary, usedAi } = await summarizeWithOpenRouter(
+            match,
+            groupEvents
+          )
           if (usedAi) aiSummaries++
           else deterministicSummaries++
 
@@ -283,39 +293,27 @@ export async function POST(request: NextRequest) {
               title: `${match.homeTeam.shortName} ${detail.homeScore ?? 0}–${detail.awayScore ?? 0} ${match.awayTeam.shortName}`,
               body: summary,
               url: `/jogos/${encodeURIComponent(match.id)}`,
-              tag: `match-${match.id}-${pendingEvents.map((event) => event.id).join("-")}`,
+              tag: `match-${match.id}-${groupEvents.map((event) => event.id).join("-")}`,
               data: { matchId: match.id },
             },
-            await getSubscriptions()
+            recipients
           )
           notificationsSent += delivery.sent
           notificationFailures += delivery.failed
-          processedMatches.push(match.id)
+          processedMatches.add(match.id)
+
+          snapshot = recordDelivery(snapshot, group.eventIds, delivery)
 
           if (delivery.failed > 0) {
-            // Eventos não confirmados serão reenviados, com limite de tentativas
-            // para não gerar uma tempestade de notificações duplicadas.
-            for (const event of pendingEvents) {
-              attempts[event.id] = (attempts[event.id] ?? 0) + 1
-            }
             console.warn(
-              `[live-monitor] ${delivery.failed} notificações falharam para a partida ${match.id}; os eventos serão tentados novamente`
+              `[live-monitor] ${delivery.failed} notificações falharam para a partida ${match.id}; só essas assinaturas serão tentadas de novo`
             )
-          } else {
-            for (const event of pendingEvents) {
-              confirmedIds.add(event.id)
-              delete attempts[event.id]
-            }
           }
         }
 
-        // O snapshot é salvo mesmo após falhas: só os eventos confirmados entram
-        // na lista, então os que falharam voltam na próxima execução.
-        await saveSnapshot(match.id, {
-          eventIds: Array.from(confirmedIds),
-          attempts,
-          updatedAt: new Date().toISOString(),
-        })
+        // O snapshot é salvo mesmo após falhas: guarda quais assinaturas já
+        // receberam cada evento, então o reenvio não duplica para as demais.
+        await saveSnapshot(match.id, snapshot)
       }
 
       return NextResponse.json({
@@ -327,7 +325,7 @@ export async function POST(request: NextRequest) {
         notificationFailures,
         aiSummaries,
         deterministicSummaries,
-        processedMatches,
+        processedMatches: Array.from(processedMatches),
       })
     } finally {
       await releaseMonitorLock(lockToken).catch((error) => {

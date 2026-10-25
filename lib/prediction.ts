@@ -1,5 +1,10 @@
 import type { Match, MatchDetail, Standing } from "@/types"
 import type { DatedMatch } from "@/lib/history"
+import {
+  classifyEvent,
+  describeEvent,
+  isMonitorableEvent,
+} from "@/lib/events"
 
 /**
  * Motor de análise estatística do Bola na Rede.
@@ -562,22 +567,6 @@ export function analyzeMatch(
   }
 }
 
-function isRedCard(type: string): boolean {
-  return type.toLowerCase().includes("red")
-}
-
-function isGoal(type: string): boolean {
-  const normalized = type.toLowerCase()
-  if (normalized.includes("own goal")) return true
-  if (normalized.includes("penalty") && normalized.includes("missed")) return false
-  return normalized.includes("goal") || (normalized.includes("penalty") && normalized.includes("scored"))
-}
-
-function isMissedPenalty(type: string): boolean {
-  const normalized = type.toLowerCase()
-  return normalized.includes("penalty") && normalized.includes("missed")
-}
-
 /**
  * Atualiza a probabilidade durante a partida usando placar, minuto e expulsões.
  * A distribuição de gols restantes é recalculada a partir dos gols esperados pré-jogo.
@@ -592,10 +581,14 @@ export function computeLivePrediction(
   const remainingFraction = clamp((93 - minute) / 90, 0.02, 1)
 
   const redCardsHome = detail.events.filter(
-    (event) => isRedCard(event.type) && event.team?.id === detail.homeTeam.id
+    (event) =>
+      classifyEvent(event.type) === "red_card" &&
+      event.team?.id === detail.homeTeam.id
   ).length
   const redCardsAway = detail.events.filter(
-    (event) => isRedCard(event.type) && event.team?.id === detail.awayTeam.id
+    (event) =>
+      classifyEvent(event.type) === "red_card" &&
+      event.team?.id === detail.awayTeam.id
   ).length
 
   const homeMultiplier =
@@ -655,51 +648,29 @@ export function extractLiveAlerts(
   const matchLabel = `${detail.homeTeam.shortName} x ${detail.awayTeam.shortName}`
 
   return detail.events
-    .filter(
-      (event) =>
-        isGoal(event.type) || isRedCard(event.type) || isMissedPenalty(event.type)
-    )
-    .map((event) => {
-      const normalized = event.type.toLowerCase()
-      const teamName = event.team?.name ?? ""
-      const player = event.player ?? ""
-      const minuteLabel =
-        event.minute != null ? ` aos ${event.minute}'` : ""
-
-      let text = ""
-      let type: AnalysisAlert["type"] = "goal"
-
-      if (isRedCard(event.type)) {
-        type = "red_card"
-        text = `Cartão vermelho${player ? ` para ${player}` : ""}${
-          teamName ? ` (${teamName})` : ""
-        }${minuteLabel}`
-      } else if (isMissedPenalty(event.type)) {
-        type = "penalty"
-        text = `Pênalti perdido${player ? ` por ${player}` : ""}${
-          teamName ? ` (${teamName})` : ""
-        }${minuteLabel}`
-      } else if (normalized.includes("own goal")) {
-        text = `Gol contra${player ? ` de ${player}` : ""}${
-          teamName ? ` (${teamName})` : ""
-        }${minuteLabel}`
-      } else if (normalized.includes("penalty")) {
-        text = `Gol de pênalti${player ? ` de ${player}` : ""}${
-          teamName ? ` (${teamName})` : ""
-        }${minuteLabel}`
-      } else {
-        text = `Gol${player ? ` de ${player}` : ""}${
-          teamName ? ` (${teamName})` : ""
-        }${minuteLabel}`
-      }
+    .map((event) => ({ event, kind: classifyEvent(event.type) }))
+    .filter(({ kind }) => isMonitorableEvent(kind))
+    .map(({ event, kind }) => {
+      const alertType: AnalysisAlert["type"] =
+        kind === "red_card"
+          ? "red_card"
+          : kind === "penalty_missed" ||
+              kind === "penalty_saved" ||
+              kind === "penalty_awarded"
+            ? "penalty"
+            : "goal"
 
       return {
         id: `evt-${event.id}`,
         matchId: analysis.matchId,
         matchLabel,
-        type,
+        type: alertType,
         minute: event.minute ?? null,
-        text,
+        text: describeEvent(kind, {
+          player: event.player,
+          team: event.team?.name,
+          minute: event.minute,
+        }),
       }
     })
     .sort((a, b) => (b.minute ?? 0) - (a.minute ?? 0))

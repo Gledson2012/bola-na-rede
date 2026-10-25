@@ -7,9 +7,9 @@ import {
 import {
   buildStandings,
   recentFormForTeam,
-  shiftDate,
   type DatedMatch,
 } from "@/lib/history"
+import { shiftDate, todayInTimeZone } from "@/lib/dates"
 
 export type { DatedMatch }
 
@@ -42,7 +42,7 @@ export function runRollingBacktest(
   trainingWindowDays = 45,
   unavailableDays = 0
 ): BacktestResponse {
-  const today = now.toISOString().slice(0, 10)
+  const today = todayInTimeZone(now)
   const testDates = Array.from({ length: testWindowDays }, (_, index) =>
     shiftDate(today, index - testWindowDays)
   )
@@ -199,7 +199,7 @@ export function runRollingBacktest(
 
 /** Janela completa de dados necessária: histórico + janela de teste. */
 export function backtestDateRange(now = new Date()): string[] {
-  const today = now.toISOString().slice(0, 10)
+  const today = todayInTimeZone(now)
   const firstTestDate = shiftDate(today, -14)
   const firstHistoryDate = shiftDate(firstTestDate, -45)
   const dates: string[] = []

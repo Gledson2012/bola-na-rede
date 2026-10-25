@@ -75,6 +75,11 @@ describe("eventKind", () => {
     expect(eventKind("Cartão amarelo")).toBe("yellow")
     expect(eventKind("Substituição")).toBe("sub")
   })
+
+  it("não confunde pênalti convertido com expulsão (regressão)", () => {
+    expect(eventKind("Penalty - Scored")).toBe("goal")
+    expect(eventKind("Penalty - Missed")).toBe("other")
+  })
 })
 
 describe("localizeEventDetail", () => {

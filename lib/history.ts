@@ -3,6 +3,11 @@ import { mapApiMatchToMatch } from "@/lib/api"
 import type { ApiMatch } from "@/types"
 import { getUpstreamJson } from "@/lib/upstream"
 import { mapWithConcurrency } from "@/lib/concurrency"
+import { shiftDate, todayInTimeZone } from "@/lib/dates"
+
+// `shiftDate` nasceu aqui e é reexportado para não quebrar quem já importa de
+// `@/lib/history`; a implementação vive em `@/lib/dates`, junto do fuso.
+export { shiftDate }
 
 /**
  * Histórico datado de partidas.
@@ -18,15 +23,10 @@ export interface DatedMatch {
   playedOn: string
 }
 
-export function shiftDate(date: string, days: number): string {
-  const shifted = new Date(`${date}T00:00:00.000Z`)
-  shifted.setUTCDate(shifted.getUTCDate() + days)
-  return shifted.toISOString().slice(0, 10)
-}
-
-/** Lista de datas (YYYY-MM-DD) terminando em `now`, do mais antigo ao mais recente. */
+/** Lista de datas (YYYY-MM-DD) anteriores a hoje, do mais antigo ao mais recente. */
 export function historyDateRange(now = new Date(), days = 14): string[] {
-  const today = now.toISOString().slice(0, 10)
+  // "Hoje" no fuso do app, não em UTC (ver `@/lib/dates`).
+  const today = todayInTimeZone(now)
   const dates: string[] = []
   for (let index = days; index >= 1; index--) {
     dates.push(shiftDate(today, -index))

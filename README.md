@@ -49,16 +49,21 @@ components/
 └── Skeleton.tsx
 lib/
 ├── api.ts                  # Cliente da API (com timeout) + mapeadores
+├── backtest-cache.ts       # Cache compartilhado (Redis) do backtest
 ├── backtest.ts             # Avaliação retrospectiva das probabilidades
 ├── competitions.ts         # Metadados das competições
 ├── concurrency.ts          # Execução paralela com limite
+├── dates.ts                # Datas de calendário no fuso do app (America/Sao_Paulo)
+├── events.ts               # Classificação única dos lances (gol, pênalti, expulsão)
 ├── history.ts              # Forma recente e classificação a partir de resultados
+├── live-monitor-events.ts  # Snapshot e deduplicação de entregas por assinatura
 ├── live-monitor-storage.ts # Redis REST e deduplicação/lock
 ├── news-matching.ts        # Vinculação entre notícias e partidas
 ├── pt-br.ts                # Tradução de competições, países e lances
 ├── prediction.ts           # Modelo de Poisson
 ├── queries.ts              # Hooks de dados (React Query)
 ├── query-persistence.ts    # Seleção do cache restaurado offline
+├── rate-limit.ts           # Rate limit por IP no Redis (push)
 ├── store.ts                # Estado persistido com versão e limite de itens
 ├── upstream.ts             # Cache/retry das chamadas à API de futebol
 ├── utils.ts                # cn, formatadores e utilitários
@@ -92,6 +97,11 @@ deduplica eventos com Redis e envia as notificações pelo Web Push. Quando a ch
 OpenRouter está configurada, `openrouter/free` resume os eventos observados; se o
 modelo estiver indisponível, o alerta usa um texto factual gerado pelas regras do
 servidor. Resumos de IA não acrescentam dados além dos eventos da API.
+
+Cada assinatura tem o seu próprio registro de entrega: se um aparelho falha, só
+ele é tentado de novo nas próximas execuções (até três tentativas), sem repetir o
+lance para quem já recebeu. As assinaturas expiram no Redis em 90 dias e são
+renovadas quando o app é aberto; inscrições e cancelamentos têm rate limit por IP.
 
 Para habilitar em produção:
 
@@ -154,6 +164,8 @@ request.
   o cliente revalida em seguida: o primeiro paint mostra conteúdo, não skeleton.
 - `/api/analise` e `/api/noticias` são respostas globais cacheadas na CDN
   (`revalidate` + `s-maxage`), reduzindo execuções do modelo por visitante.
+- O backtest é guardado por 30 min no Redis (com fallback em memória por
+  instância), para não repetir a varredura de ~59 dias a cada clique.
 - O service worker guarda assets imutáveis (`/_next/static/*`) e mostra
   `public/offline.html` quando a navegação falha por falta de rede. Ele é
   registrado automaticamente apenas no build de produção.

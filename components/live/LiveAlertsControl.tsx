@@ -52,6 +52,17 @@ export function LiveAlertsControl() {
         const registration = await navigator.serviceWorker.getRegistration("/")
         const subscription = await registration?.pushManager.getSubscription()
         setIsSubscribed(Boolean(subscription))
+
+        // Renova o registro no servidor a cada abertura: o Redis guarda a
+        // assinatura com TTL e pode ter sido limpo. Falhas são silenciosas —
+        // o alerta continua funcionando no navegador.
+        if (subscription && result.pushConfigured) {
+          void fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(subscription.toJSON()),
+          }).catch(() => undefined)
+        }
       }
     } catch (loadError) {
       setError(

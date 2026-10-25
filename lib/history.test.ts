@@ -57,6 +57,12 @@ describe("historyDateRange", () => {
     const dates = historyDateRange(new Date("2026-10-22T23:59:00.000Z"), 2)
     expect(dates).not.toContain("2026-10-22")
   })
+
+  it("considera o dia de Brasília no fim da noite, não o de UTC", () => {
+    // 01:30 UTC de 23/10 = 22:30 de 22/10 em Brasília.
+    const dates = historyDateRange(new Date("2026-10-23T01:30:00.000Z"), 2)
+    expect(dates).toEqual(["2026-10-20", "2026-10-21"])
+  })
 })
 
 describe("recentFormForTeam", () => {

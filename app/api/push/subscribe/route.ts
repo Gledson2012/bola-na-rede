@@ -4,13 +4,34 @@ import {
   removeSubscription,
   saveSubscription,
 } from "@/lib/web-push"
+import { checkRateLimit, clientKey } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
+
+/** Limite por IP: o app real registra no máximo uma vez por abertura. */
+const RATE_LIMIT = { limit: 30, windowSeconds: 60 }
 
 interface SubscriptionInput {
   endpoint?: unknown
   expirationTime?: unknown
   keys?: { p256dh?: unknown; auth?: unknown }
+}
+
+async function rateLimited(request: NextRequest): Promise<NextResponse | null> {
+  const result = await checkRateLimit(
+    `push-subscribe:${clientKey(request.headers)}`,
+    RATE_LIMIT.limit,
+    RATE_LIMIT.windowSeconds
+  )
+  if (!result.limited) return null
+
+  return NextResponse.json(
+    { error: "Muitas solicitações. Tente novamente em instantes." },
+    {
+      status: 429,
+      headers: { "Retry-After": String(result.retryAfter) },
+    }
+  )
 }
 
 function sameOriginRequest(request: NextRequest): boolean {
@@ -37,10 +58,17 @@ function isSupportedPushEndpoint(endpoint: URL): boolean {
   )
 }
 
+/** Chaves de assinatura vêm em base64url; limita tamanho e alfabeto. */
+function isSubscriptionKey(value: string, maxLength: number): boolean {
+  return value.length <= maxLength && /^[A-Za-z0-9_+/=-]+$/.test(value)
+}
+
 export async function POST(request: NextRequest) {
   if (!sameOriginRequest(request)) {
     return NextResponse.json({ error: "Origem da solicitação inválida." }, { status: 403 })
   }
+  const limited = await rateLimited(request)
+  if (limited) return limited
   if (!hasPushConfiguration()) {
     return NextResponse.json(
       { error: "O serviço de notificações ainda não foi configurado." },
@@ -61,8 +89,8 @@ export async function POST(request: NextRequest) {
     !input.keys ||
     typeof input.keys.p256dh !== "string" ||
     typeof input.keys.auth !== "string" ||
-    !input.keys.p256dh ||
-    !input.keys.auth
+    !isSubscriptionKey(input.keys.p256dh, 512) ||
+    !isSubscriptionKey(input.keys.auth, 256)
   ) {
     return NextResponse.json({ error: "Assinatura push inválida." }, { status: 400 })
   }
@@ -100,6 +128,8 @@ export async function DELETE(request: NextRequest) {
   if (!sameOriginRequest(request)) {
     return NextResponse.json({ error: "Origem da solicitação inválida." }, { status: 403 })
   }
+  const limited = await rateLimited(request)
+  if (limited) return limited
   if (!hasPushConfiguration()) {
     return NextResponse.json(
       { error: "O serviço de notificações ainda não foi configurado." },
