@@ -90,33 +90,34 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-background/90 backdrop-blur-xl border-b border-border/80">
+      <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-2xl border-b border-border/60">
         <div className="flex items-center justify-between px-3.5 py-2.5 safe-area-top">
           {/* Logo & App title */}
-          <Link href="/jogos" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-2xl bg-gradient-to-tr from-futebol-700 via-futebol-600 to-futebol-500 flex items-center justify-center shadow-md shadow-futebol-600/20 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-sm">⚽</span>
+          <Link href="/jogos" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-futebol-700 via-futebol-600 to-futebol-400 flex items-center justify-center shadow-md shadow-futebol-600/30 ring-1 ring-futebol-400/30 group-hover:scale-105 transition-transform">
+              <span className="text-white font-black text-base">⚽</span>
             </div>
             <div>
               <span className="font-black text-base tracking-tight text-foreground block leading-none">
-                Bola na <span className="text-futebol-600">Rede</span>
+                Bola na <span className="text-futebol-500">Rede</span>
               </span>
-              <span className="text-[10px] text-muted-foreground font-semibold tracking-tight">
-                {liveCount > 0 ? `${liveCount} ao vivo` : "Central de Ligas"}
+              <span className="text-[10px] text-muted-foreground font-semibold tracking-tight flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-futebol-500 animate-pulse" />
+                {liveCount > 0 ? `${liveCount} ao vivo agora` : "Central do Futebol"}
               </span>
             </div>
           </Link>
 
           {/* Header Action Buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {/* Quick Leagues Drawer Trigger */}
             <button
               onClick={() => setLeaguesOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-muted/70 hover:bg-muted text-xs font-bold text-foreground border border-border/80 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/80 hover:bg-muted text-xs font-bold text-foreground border border-border/80 transition-all active:scale-95"
               title="Ver todos os campeonatos e ligas"
             >
-              <Trophy className="w-3.5 h-3.5 text-yellow-500" />
-              <span className="hidden sm:inline">Todas as Ligas</span>
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Ligas</span>
               <span className="sm:hidden">Ligas</span>
             </button>
 
@@ -124,7 +125,7 @@ export function Header() {
             {liveCount > 0 && (
               <Link
                 href="/jogos"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs font-black animate-pulse"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-black animate-pulse"
                 title="Ver partidas ao vivo"
               >
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
@@ -135,7 +136,7 @@ export function Header() {
             {/* Search shortcut */}
             <button
               onClick={handleSearchClick}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl border border-transparent hover:border-border transition-colors"
               aria-label="Buscar partidas"
               title="Buscar (tecla F)"
             >

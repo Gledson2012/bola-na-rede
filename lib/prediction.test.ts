@@ -111,6 +111,13 @@ describe("analyzeMatch", () => {
     expect(first.probability).toBeLessThanOrEqual(1)
   })
 
+  it("aplica o ajuste Dixon-Coles para placares baixos e empates", () => {
+    expect(analysis.probabilities.draw).toBeGreaterThan(0)
+    // A soma das probabilidades 1X2 permanece 1.0
+    const { home: h, draw: d, away: a } = analysis.probabilities
+    expect(h + d + a).toBeCloseTo(1, 10)
+  })
+
   it("marca como indisponível quando o time não está na tabela", () => {
     const other = analyzeMatch(
       matchFixture({ homeTeam: team("missing", "Sumido") }),

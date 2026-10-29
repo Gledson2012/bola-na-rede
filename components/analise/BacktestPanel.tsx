@@ -82,29 +82,31 @@ export function BacktestPanel() {
   const assessment = backtest ? ASSESSMENT[backtest.assessment] : null
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
+    <section className="rounded-3xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-bold">Avaliar o modelo</h2>
-          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-            Backtest retrospectivo: últimos 14 dias contra três referências
-            (frequência de resultados, Poisson com a média de gols da liga e palpite
-            uniforme), usando até 45 dias anteriores para cada previsão. A primeira
-            execução busca o histórico e pode demorar ~30s.
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-futebol-500/20 text-futebol-500 flex items-center justify-center font-bold text-xs">
+              🧪
+            </span>
+            <h2 className="text-sm font-black text-foreground">Avaliação do Modelo (Backtest)</h2>
+          </div>
+          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+            Backtest retrospectivo dos últimos 14 dias contra três referências (frequência de resultados, Poisson com média da liga e palpite uniforme).
           </p>
         </div>
         <button
           type="button"
           onClick={() => void runBacktest()}
           disabled={loading}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-futebol-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-futebol-700 disabled:opacity-60"
+          className="flex shrink-0 items-center gap-1.5 rounded-2xl bg-futebol-600 px-3.5 py-2 text-xs font-black text-white shadow-md transition-all hover:bg-futebol-700 active:scale-95 disabled:opacity-60"
         >
           {loading ? (
             <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
-          {loading ? "Avaliando…" : backtest ? "Avaliar de novo" : "Executar"}
+          {loading ? "Avaliando…" : backtest ? "Avaliar de novo" : "Executar Backtest"}
         </button>
       </div>
 

@@ -187,15 +187,31 @@ function poissonPmf(lambda: number, k: number): number {
   return (Math.exp(-lambda) * Math.pow(lambda, k)) / factorial(k)
 }
 
-/** Matriz de placares exatos (0..MAX_GOALS), normalizada para somar 1. */
+/**
+ * Matriz de placares exatos (0..MAX_GOALS), normalizada para somar 1.
+ * Aplica o ajuste de Dixon-Coles (rho = -0.06) para corrigir a dependência
+ * e subestimativa de placares baixos (0-0, 1-1, 1-0, 0-1) inerente ao Poisson independente.
+ */
 function buildScoreMatrix(lambdaHome: number, lambdaAway: number): number[][] {
   const matrix: number[][] = []
   let total = 0
+  const rho = -0.06
 
   for (let home = 0; home <= MAX_GOALS; home++) {
     matrix[home] = []
     for (let away = 0; away <= MAX_GOALS; away++) {
-      const probability = poissonPmf(lambdaHome, home) * poissonPmf(lambdaAway, away)
+      let tau = 1
+      if (home === 0 && away === 0) {
+        tau = Math.max(0, 1 - lambdaHome * lambdaAway * rho)
+      } else if (home === 1 && away === 0) {
+        tau = Math.max(0, 1 + lambdaAway * rho)
+      } else if (home === 0 && away === 1) {
+        tau = Math.max(0, 1 + lambdaHome * rho)
+      } else if (home === 1 && away === 1) {
+        tau = Math.max(0, 1 - rho)
+      }
+
+      const probability = poissonPmf(lambdaHome, home) * poissonPmf(lambdaAway, away) * tau
       matrix[home][away] = probability
       total += probability
     }

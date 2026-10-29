@@ -342,26 +342,29 @@ export default function JogosClient({
     <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partidas" onRetry={() => { reset(); refetch() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-12">
         {/* Top Header Card with Quick Stats & Auto-Refresh */}
-        <div className="rounded-2xl bg-gradient-to-br from-futebol-900 via-futebol-800 to-futebol-950 text-white p-4 shadow-lg border border-futebol-700/50 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-futebol-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="rounded-3xl bg-gradient-to-br from-futebol-950 via-slate-900 to-futebol-900 text-white p-4 sm:p-5 shadow-xl border border-futebol-500/30 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-futebol-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 -mb-10 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight">Jogos de Futebol</h1>
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
+                  <span>Placares & Ligas</span>
+                </h1>
                 {stats.live > 0 ? (
-                  <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-500 text-white text-[11px] font-black animate-pulse shadow-sm">
+                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black animate-pulse shadow-md shadow-red-500/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                     {stats.live} AO VIVO
                   </span>
                 ) : (
-                  <span className="text-[11px] font-semibold text-white/70 px-2 py-0.5 rounded-full bg-white/10">
-                    Ao Vivo Offline
+                  <span className="text-[10px] font-bold text-white/70 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
+                    Sem jogos ao vivo
                   </span>
                 )}
               </div>
-              <p className="text-xs text-white/75 mt-0.5">
-                Placares, lances, estatísticas e horários em tempo real
+              <p className="text-xs text-emerald-100/80 mt-1 font-medium">
+                Partidas em tempo real, tabelas e inteligência estatística
               </p>
             </div>
 

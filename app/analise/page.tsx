@@ -93,44 +93,70 @@ export default function AnalisePage() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl bg-gradient-to-br from-futebol-700 to-futebol-500 p-4 text-white shadow-lg">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5" />
-          <h1 className="text-lg font-black">Análise estatística</h1>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-white/85">
-          Estimativas baseadas nos gols e jogos da classificação. Não usam odds,
-          escalações ou xG e não garantem resultados nem lucro.
-        </p>
-        <p className="mt-1 text-[10px] text-white/75">
-          Times com poucos jogos são puxados em direção à média da competição — por
-          isso o nível de amostra importa mais que a diferença entre as casas.
-        </p>
-        {data && (
-          <p className="mt-3 text-[10px] text-white/75">
-            Atualizado{" "}
-            {new Date(data.generatedAt).toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
+      {/* Top Hero Analytics Banner */}
+      <section className="rounded-3xl bg-gradient-to-br from-futebol-950 via-slate-900 to-futebol-900 text-white p-5 shadow-xl border border-futebol-500/30 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-futebol-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 -mb-10 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-2xl bg-futebol-500/20 border border-futebol-400/30 flex items-center justify-center text-futebol-400 shadow-sm">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight">Análise Estatística Inteligente</h1>
+              <p className="text-[11px] text-emerald-100/80 font-medium">
+                Modelo de Poisson com ajuste Dixon-Coles & Bayes Empírico
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-white/85">
+            Estimativas baseadas em forças de ataque/defesa da classificação. Sem odds de casas de apostas, escalações ou xG — focado em probabilidade e odd justa real (1 / probabilidade).
           </p>
-        )}
+
+          <div className="mt-3 pt-3 border-t border-white/15 flex items-center justify-between text-[10px] text-white/70">
+            <span>Amostras pequenas são encolhidas na direção da média da liga</span>
+            {data && (
+              <span className="font-semibold">
+                Atualizado{" "}
+                {new Date(data.generatedAt).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
+          </div>
+        </div>
       </section>
 
+      {/* Analytics Summary Stats */}
       {data && (
         <section className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Resumo da análise">
           {[
-            { label: "Partidas", value: summary.total },
-            { label: "Com estimativa", value: summary.analyzed },
-            { label: "Ao vivo", value: summary.live },
-            { label: "Sem amostra", value: summary.insufficient },
+            { label: "Total de Partidas", value: summary.total },
+            { label: "Com Estimativa", value: summary.analyzed, highlight: true },
+            { label: "Ao Vivo Hoje", value: summary.live, live: summary.live > 0 },
+            { label: "Sem Amostra", value: summary.insufficient },
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-xl border border-border bg-card px-3 py-2.5"
+              className={cn(
+                "rounded-2xl border bg-card p-3 shadow-sm transition-all",
+                item.live
+                  ? "border-red-500/30 bg-red-500/[0.04]"
+                  : item.highlight
+                  ? "border-futebol-500/30 bg-futebol-500/[0.04]"
+                  : "border-border"
+              )}
             >
-              <p className="text-[10px] text-muted-foreground">{item.label}</p>
-              <p className="mt-0.5 text-lg font-black tabular-nums">{item.value}</p>
+              <p className="text-[10px] font-semibold text-muted-foreground">{item.label}</p>
+              <p className={cn(
+                "mt-0.5 text-xl font-black tabular-nums tracking-tight",
+                item.live ? "text-red-500" : item.highlight ? "text-futebol-500" : "text-foreground"
+              )}>
+                {item.value}
+              </p>
             </div>
           ))}
         </section>
@@ -139,13 +165,16 @@ export default function AnalisePage() {
       <LiveAlertsControl />
 
       {data?.alerts?.length ? (
-        <section className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4">
-          <h2 className="text-sm font-bold">Lances ao vivo</h2>
-          <ul className="mt-2 space-y-2">
+        <section className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+          <h2 className="text-xs font-black uppercase tracking-wider text-amber-500 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            Lances Ao Vivo Importantes
+          </h2>
+          <ul className="mt-2 space-y-1.5">
             {data.alerts.slice(0, 5).map((alert) => (
-              <li key={alert.id} className="text-xs">
-                <span className="font-semibold">{alert.matchLabel}</span>
-                <span className="text-muted-foreground"> — {alert.text}</span>
+              <li key={alert.id} className="text-xs flex items-center justify-between gap-2 bg-background/50 p-2 rounded-xl border border-amber-500/20">
+                <span className="font-bold text-foreground">{alert.matchLabel}</span>
+                <span className="text-muted-foreground text-[11px]">{alert.text}</span>
               </li>
             ))}
           </ul>
@@ -154,35 +183,45 @@ export default function AnalisePage() {
 
       {matches.length > 0 ? <AnalysisHighlights matches={matches} /> : null}
 
+      {/* Model Bet Slip Card */}
       {data?.slip && (
-        <section className="rounded-2xl border border-border bg-card p-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-sm font-bold">Bilhete do modelo</h2>
-            <span className="text-[10px] tabular-nums text-muted-foreground">
-              combinada {percent(data.slip.combinedProbability)} · odd{" "}
-              {data.slip.combinedFairOdd.toFixed(2).replace(".", ",")}
-            </span>
+        <section className="rounded-3xl border border-futebol-500/30 bg-gradient-to-b from-futebol-500/[0.08] via-card to-card p-4 shadow-lg relative overflow-hidden">
+          <div className="flex items-center justify-between gap-2 pb-3 border-b border-border/80">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-futebol-500/20 text-futebol-500 flex items-center justify-center font-black text-xs">
+                🎟️
+              </span>
+              <div>
+                <h2 className="text-sm font-black text-foreground">Bilhete Sugerido do Modelo</h2>
+                <p className="text-[10px] text-muted-foreground">Seleções independentes de alta confiança</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="block text-xs font-black text-futebol-500 tabular-nums">
+                {percent(data.slip.combinedProbability)}
+              </span>
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+                Odd Justa {data.slip.combinedFairOdd.toFixed(2).replace(".", ",")}
+              </span>
+            </div>
           </div>
-          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-            Seleções independentes com bom nível de amostra. A probabilidade
-            combinada é apenas uma estimativa do modelo, não uma garantia.
-          </p>
+
           <ul className="mt-3 space-y-2">
             {data.slip.picks.map((pick) => (
               <li
                 key={pick.matchId}
-                className="flex items-center justify-between gap-3 rounded-xl bg-muted/50 p-2.5 text-xs"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-3 text-xs shadow-sm hover:border-futebol-500/40 transition-colors"
               >
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold">{pick.matchLabel}</span>
-                  <span className="text-muted-foreground">
-                    {pick.market} · {pick.competition}
+                  <span className="block truncate font-bold text-foreground">{pick.matchLabel}</span>
+                  <span className="text-[11px] font-semibold text-futebol-500">
+                    {pick.market} · <span className="text-muted-foreground font-normal">{pick.competition}</span>
                   </span>
                 </span>
                 <span className="shrink-0 text-right tabular-nums">
-                  <span className="block font-bold">{percent(pick.probability)}</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    odd justa {pick.fairOdd.toFixed(2).replace(".", ",")}
+                  <span className="block font-black text-foreground text-xs">{percent(pick.probability)}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground">
+                    odd {pick.fairOdd.toFixed(2).replace(".", ",")}
                   </span>
                 </span>
               </li>

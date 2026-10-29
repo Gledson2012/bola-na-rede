@@ -65,7 +65,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+    { media: "(prefers-color-scheme: dark)", color: "#030712" },
   ],
   colorScheme: "light dark",
 }
@@ -77,11 +77,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="h-full antialiased" data-scroll-behavior="smooth">
-      <body className="font-sans h-full bg-slate-950 text-slate-200 flex justify-center">
+      <body className="font-sans h-full bg-[#030712] text-slate-100 flex justify-center selection:bg-futebol-500/30 selection:text-futebol-400">
         <Providers>
           <ServiceWorkerRegistration />
           {/* Mobile-first modern phone frame container */}
-          <div className="w-full max-w-lg min-h-[100dvh] flex flex-col bg-background text-foreground relative shadow-2xl overflow-x-hidden border-x border-border/40">
+          <div className="w-full max-w-lg min-h-[100dvh] flex flex-col bg-background text-foreground relative shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-x-hidden border-x border-border/40">
             <a
               href="#conteudo"
               className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-xl focus:bg-futebol-600 focus:px-3 focus:py-2 focus:text-xs focus:font-bold focus:text-white"

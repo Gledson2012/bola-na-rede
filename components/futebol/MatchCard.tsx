@@ -155,36 +155,36 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
       <Link
         href={`/jogos/${match.id}`}
         className={cn(
-          "block relative overflow-hidden rounded-2xl border transition-all duration-200 bg-card p-4",
+          "block relative overflow-hidden rounded-2xl border transition-all duration-200 bg-card p-4 shadow-sm",
           isLive
-            ? "border-red-500/50 bg-gradient-to-b from-red-500/[0.04] to-card shadow-md shadow-red-500/5 ring-1 ring-red-500/30"
+            ? "border-red-500/50 bg-gradient-to-b from-red-500/[0.07] via-card to-card shadow-lg shadow-red-500/10 ring-1 ring-red-500/30"
             : isPinned
-            ? "border-amber-400/50 bg-gradient-to-b from-amber-400/[0.04] to-card shadow-md shadow-amber-400/5 ring-1 ring-amber-400/30"
-            : "border-border hover:shadow-lg hover:border-futebol-400/50 hover:-translate-y-0.5"
+            ? "border-amber-400/50 bg-gradient-to-b from-amber-400/[0.06] via-card to-card shadow-md shadow-amber-400/10 ring-1 ring-amber-400/30"
+            : "border-border hover:shadow-xl hover:border-futebol-500/40 hover:-translate-y-0.5"
         )}
       >
         {/* Top bar inside card: Competition or Live Tag + Action Buttons */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-1.5 min-w-0">
             {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider shadow-sm animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-white" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                 AO VIVO {match.minute ? `• ${match.minute}'` : ""}
               </span>
             ) : isFinished ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
-                <Check className="w-3 h-3 text-emerald-600" />
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider border border-border/60">
+                <Check className="w-3 h-3 text-emerald-500" />
                 Encerrado
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-futebol-50 dark:bg-futebol-950/60 text-futebol-700 dark:text-futebol-300 text-[10px] font-bold uppercase tracking-wider border border-futebol-200/50">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-futebol-500/10 text-futebol-600 dark:text-futebol-400 text-[10px] font-bold uppercase tracking-wider border border-futebol-500/20">
                 <Clock className="w-3 h-3" />
                 Agendado • {matchTime}
               </span>
             )}
 
             {match.competition && (
-              <span className="text-[11px] text-muted-foreground font-medium truncate max-w-[130px] sm:max-w-[200px]">
+              <span className="text-[11px] text-muted-foreground font-semibold truncate max-w-[130px] sm:max-w-[200px]">
                 {match.competition}
               </span>
             )}
@@ -197,13 +197,13 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
                 className={cn(
                   "p-1.5 rounded-lg transition-colors",
                   isReminded
-                    ? "text-futebol-600 bg-futebol-50 dark:bg-futebol-950/60"
+                    ? "text-futebol-500 bg-futebol-500/10 border border-futebol-500/30"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
                 title={isReminded ? "Lembrete ativo" : "Definir lembrete"}
                 aria-label="Definir lembrete de partida"
               >
-                <Bell className={cn("w-3.5 h-3.5", isReminded && "fill-futebol-600")} />
+                <Bell className={cn("w-3.5 h-3.5", isReminded && "fill-futebol-500")} />
               </button>
             )}
 
@@ -212,7 +212,7 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
               className={cn(
                 "p-1.5 rounded-lg transition-colors",
                 isPinned || isTeamFavorite
-                  ? "text-amber-500 bg-amber-50 dark:bg-amber-950/40"
+                  ? "text-amber-500 bg-amber-500/10 border border-amber-500/30"
                   : "text-muted-foreground hover:text-amber-500 hover:bg-muted"
               )}
               title={isPinned ? "Partida fixada" : "Fixar partida"}

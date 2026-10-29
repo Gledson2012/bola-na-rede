@@ -79,30 +79,30 @@ function OutcomeTile({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border p-2 text-center transition-colors",
+        "relative overflow-hidden rounded-2xl border p-2.5 text-center transition-all duration-200",
         isFavorite
-          ? "border-futebol-500/30 bg-futebol-500/[0.07]"
-          : "border-transparent bg-muted/50"
+          ? "border-futebol-500/40 bg-futebol-500/[0.08] shadow-sm ring-1 ring-futebol-500/20"
+          : "border-border/60 bg-muted/40 hover:bg-muted/70"
       )}
     >
       {isFavorite && (
         <span
-          className={cn("absolute inset-x-0 top-0 h-0.5", accent)}
+          className={cn("absolute inset-x-0 top-0 h-1", accent)}
           aria-hidden="true"
         />
       )}
-      <p className="truncate text-[10px] font-medium text-muted-foreground">
+      <p className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          "mt-0.5 text-sm font-black tabular-nums",
-          isFavorite ? "text-foreground" : "text-foreground/80"
+          "mt-1 text-base font-black tabular-nums tracking-tight",
+          isFavorite ? "text-futebol-500" : "text-foreground"
         )}
       >
         {percent(probability)}
       </p>
-      <p className="mt-0.5 text-[10px] tabular-nums text-muted-foreground">
+      <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
         odd {odd(fairOdd)}
       </p>
     </div>
@@ -222,26 +222,26 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow hover:shadow-md">
+    <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all hover:shadow-lg hover:border-futebol-500/30">
       {/* Cabeçalho: competição + amostra */}
-      <div className="flex items-start justify-between gap-3 border-b border-border/70 bg-muted/30 px-4 py-2.5">
+      <div className="flex items-start justify-between gap-3 border-b border-border/70 bg-muted/40 px-4 py-3">
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-semibold text-muted-foreground">
+          <p className="truncate text-xs font-bold text-foreground">
             {analysis.competition}
             {analysis.competitionCountry ? ` · ${analysis.competitionCountry}` : ""}
           </p>
-          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+          <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
             {analysis.status === "live" ? (
               <>
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
-                Ao vivo
+                <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                <span className="text-red-500 font-extrabold uppercase">Ao vivo</span>
                 {analysis.live ? ` · ${analysis.live.minute}'` : ""}
               </>
             ) : analysis.status === "finished" ? (
-              "Encerrado"
+              <span className="text-emerald-500 font-extrabold">Encerrado</span>
             ) : (
               <>
-                <Clock className="h-3 w-3" />
+                <Clock className="h-3 w-3 text-futebol-500" />
                 {analysis.kickoff || "Horário indisponível"}
               </>
             )}
