@@ -3,15 +3,15 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Search, Trophy, X, ChevronRight } from "lucide-react"
-import { useLiveMatches, useCompetitions } from "@/lib/queries"
+import { Search, X, ChevronRight, Trophy } from "lucide-react"
+import { useLiveMatches } from "@/lib/queries"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
+import { SoccerBallIcon } from "@/components/icons/soccer-ball"
 
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const { data: liveMatches = [] } = useLiveMatches()
-  const { data: competitions = [] } = useCompetitions()
   const [leaguesOpen, setLeaguesOpen] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
 
@@ -90,50 +90,53 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-2xl border-b border-border/60">
-        <div className="flex items-center justify-between px-3.5 py-2.5 safe-area-top">
-          {/* Logo & App title */}
-          <Link href="/jogos" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-black">
-              ⚽
-            </div>
-            <div>
-              <span className="font-bold text-sm tracking-tight text-foreground block leading-none">
+      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-2 px-4 py-2.5 safe-area-top">
+          <Link href="/jogos" className="group flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[0.8rem] bg-primary text-primary-foreground shadow-sm transition-transform group-active:scale-95">
+              <SoccerBallIcon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] font-black leading-none tracking-tight text-foreground">
                 Bola na Rede
               </span>
-              <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                {liveCount > 0 ? `${liveCount} ao vivo` : "Placares"}
+              <span className="mt-1 flex items-center gap-1.5 text-[10px] font-semibold leading-none text-muted-foreground">
+                {liveCount > 0 ? (
+                  <>
+                    <span className="live-dot h-1.5 w-1.5" />
+                    {liveCount} {liveCount === 1 ? "jogo ao vivo" : "jogos ao vivo"}
+                  </>
+                ) : (
+                  "Placares do dia"
+                )}
               </span>
-            </div>
+            </span>
           </Link>
 
-          {/* Header Action Buttons */}
-          <div className="flex items-center gap-1">
-            {/* Quick Leagues Drawer Trigger */}
+          <div className="flex flex-shrink-0 items-center gap-1">
             <button
               onClick={() => setLeaguesOpen(true)}
-              className="px-3 py-1.5 rounded-md hover:bg-accent text-xs font-medium text-foreground transition-colors"
-              title="Ver ligas"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 text-[11px] font-bold text-foreground transition-colors hover:border-primary/30"
+              aria-label="Ver campeonatos"
             >
-              Ligas
+              <Trophy className="h-3.5 w-3.5 text-primary" />
+              <span>Ligas</span>
             </button>
 
-            {/* Search shortcut */}
             <button
               onClick={handleSearchClick}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+              className="press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Buscar"
             >
-              <Search className="w-4 h-4" />
+              <Search className="h-4 w-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Quick All Leagues Modal Sheet */}
       {leaguesOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
           onClick={() => setLeaguesOpen(false)}
           role="dialog"
           aria-modal="true"
@@ -142,39 +145,44 @@ export function Header() {
           <div
             ref={sheetRef}
             tabIndex={-1}
-            className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-lg bg-background border border-border p-4 space-y-4 shadow-sm outline-none"
+            className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.6rem] border border-border bg-background shadow-2xl outline-none animate-in slide-in-from-bottom-4 duration-200 sm:rounded-[1.6rem]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Sheet Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 id="leagues-sheet-title" className="text-sm font-bold text-foreground">Campeonatos</h3>
+            <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+              <div>
+                <h2 id="leagues-sheet-title" className="text-sm font-black text-foreground">
+                  Campeonatos
+                </h2>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  Escolha uma liga para ver a classificação
+                </p>
+              </div>
               <button
                 onClick={() => setLeaguesOpen(false)}
-                className="p-1 rounded-md text-muted-foreground hover:bg-accent"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label="Fechar"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* All 14 Leagues List */}
-            <div className="space-y-1">
-              {ALL_COMPETITIONS.map((c) => {
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => handleSelectLeague(c.id)}
-                    className="w-full py-2 px-2 flex items-center justify-between rounded-md hover:bg-accent transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{c.flag}</span>
-                      <span className="text-xs font-medium text-foreground">
-                        {c.name}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
+            <div className="overflow-y-auto p-2">
+              {ALL_COMPETITIONS.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelectLeague(c.id)}
+                  className="press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent"
+                >
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-base">
+                    {c.flag}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs font-bold text-foreground">{c.name}</span>
+                    <span className="block text-[10px] text-muted-foreground">{c.country}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                </button>
+              ))}
             </div>
           </div>
         </div>

@@ -23,7 +23,7 @@ export function AnalysisHighlights({ matches }: { matches: MatchAnalysis[] }) {
     .map((match) => {
       const probabilities = match.live?.probabilities ?? match.probabilities
       const outcomes = [
-        { label: match.home.shortName, value: probabilities.home, accent: "bg-futebol-600" },
+        { label: match.home.shortName, value: probabilities.home, accent: "bg-primary" },
         { label: "Empate", value: probabilities.draw, accent: "bg-amber-400" },
         { label: match.away.shortName, value: probabilities.away, accent: "bg-sky-500" },
       ]
@@ -54,7 +54,7 @@ export function AnalysisHighlights({ matches }: { matches: MatchAnalysis[] }) {
           <Link
             key={match.matchId}
             href={`/jogos/${match.matchId}`}
-            className="w-[245px] shrink-0 snap-start rounded-2xl border border-border/80 bg-card p-3.5 shadow-sm transition-all hover:shadow-md hover:border-futebol-500/50 hover:-translate-y-0.5"
+            className="w-[245px] shrink-0 snap-start rounded-2xl border border-border/80 bg-card p-3.5 shadow-sm transition-all hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5"
           >
             <p className="truncate text-[10px] font-bold text-muted-foreground">
               {match.competition}
@@ -90,7 +90,7 @@ export function AnalysisHighlights({ matches }: { matches: MatchAnalysis[] }) {
 
             <div className="mt-2.5 flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-xs font-bold text-futebol-500">
+                <p className="truncate text-xs font-bold text-primary">
                   {best.label} {percent(best.value)}
                 </p>
                 <p className="text-[10px] font-semibold tabular-nums text-muted-foreground">

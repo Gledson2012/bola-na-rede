@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { TeamDetailSkeleton } from "@/components/Skeleton"
+import { Toast } from "@/components/ui/toast"
 import { useTeam, useTeamForm, useTeamNext, useTeamLast, useFavorites } from "@/lib/queries"
 import { useToast } from "@/lib/use-toast"
 import {
@@ -25,7 +26,7 @@ function TeamHeaderLogo({ src, alt, name, color, size = 72 }: { src?: string; al
     return (
       <div
         style={{ width: size, height: size, backgroundColor: color || "#0ea5e9" }}
-        className="rounded-3xl text-white font-black flex items-center justify-center text-2xl shadow-xl flex-shrink-0 border-4 border-background"
+        className="flex flex-shrink-0 items-center justify-center rounded-2xl border border-white/20 text-2xl font-black text-white shadow-lg"
         aria-label={alt}
       >
         {initial}
@@ -40,7 +41,7 @@ function TeamHeaderLogo({ src, alt, name, color, size = 72 }: { src?: string; al
         alt={alt}
         width={size}
         height={size}
-        className="rounded-3xl object-cover border-4 border-background shadow-xl bg-white p-1"
+        className="rounded-2xl border border-white/20 bg-white object-cover p-1 shadow-lg"
         onError={() => setError(true)}
         unoptimized
       />
@@ -84,19 +85,19 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
   if (teamError) {
     return (
       <ErrorBoundary fallback={(reset) => (<ErrorFallback message={teamError.message} onRetry={() => { reset(); refetch() }} />)}>
-        <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-            <Shield className="w-8 h-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+            <Shield className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-bold">Clube não encontrado</h2>
-          <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+          <h2 className="text-base font-black">Clube não encontrado</h2>
+          <p className="mt-1 max-w-xs text-[11px] text-muted-foreground">
             Não foi possível carregar as informações deste clube.
           </p>
           <Link
             href="/times"
-            className="mt-4 px-4 py-2 rounded-xl bg-futebol-600 text-white text-xs font-bold hover:bg-futebol-700 transition-colors"
+            className="press mt-4 rounded-full bg-primary px-4 py-2 text-[11px] font-black text-primary-foreground"
           >
-            ← Voltar para Todos os Times
+            Voltar para Times
           </Link>
         </div>
       </ErrorBoundary>
@@ -117,15 +118,15 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
 
   return (
     <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao renderizar detalhes do time" onRetry={() => { reset(); refetch() }} />)}>
-      <div className="flex flex-col h-full space-y-4 pb-16">
+      <div className="flex flex-col gap-4 pb-6">
         {/* Navigation Bar */}
-        <div className="flex items-center justify-between py-2 border-b border-border/80">
+        <div className="flex items-center justify-between py-2">
           <Link
             href="/times"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors p-1 -ml-1 rounded-lg"
+            className="press inline-flex h-8 items-center gap-1 rounded-full border border-border/80 bg-card pl-2 pr-3 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Voltar para Times</span>
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Times</span>
           </Link>
 
           <div className="flex items-center gap-1.5">
@@ -135,31 +136,31 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                 showToast(favorite ? "Removido dos favoritos" : "Adicionado aos favoritos ⭐")
               }}
               className={cn(
-                "p-2 rounded-xl transition-colors border",
+                "press flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
                 favorite
-                  ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-500"
-                  : "border-border text-muted-foreground hover:bg-muted hover:text-amber-500"
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-500"
+                  : "border-border/80 bg-card text-muted-foreground hover:text-amber-500"
               )}
               title={favorite ? "Remover dos favoritos" : "Favoritar time"}
               aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
               aria-pressed={favorite}
             >
-              <Star className={cn("w-4 h-4", favorite && "fill-amber-400")} />
+              <Star className={cn("h-3.5 w-3.5", favorite && "fill-current")} />
             </button>
 
             <button
               onClick={handleShare}
-              className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="press flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground"
               title="Compartilhar clube"
               aria-label="Compartilhar clube"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
 
         {/* Club Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 text-white p-5 shadow-xl border border-futebol-800">
+        <div className="relative overflow-hidden rounded-[1.6rem] border border-primary/20 bg-[radial-gradient(130%_130%_at_10%_0%,#0f3d2b_0%,#082219_55%,#061a13_100%)] p-5 text-white shadow-lg">
           <div
             className="absolute top-0 right-0 w-64 h-64 opacity-20 blur-3xl pointer-events-none rounded-full"
             style={{ backgroundColor: team.primaryColor || "#0ea5e9" }}
@@ -194,13 +195,13 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-white/70 mt-2">
                 {team.venue?.name && team.venue.name !== "Local a confirmar" && (
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-futebol-400" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-300" />
                     <span>{team.venue.name}</span>
                   </div>
                 )}
                 {team.founded && (
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-futebol-400" />
+                    <Calendar className="w-3.5 h-3.5 text-emerald-300" />
                     <span>Fundado em {team.founded}</span>
                   </div>
                 )}
@@ -209,18 +210,18 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
               {/* Status Tag */}
               <div className="mt-3 flex items-center justify-center sm:justify-start gap-2">
                 {team.liveMatches && team.liveMatches > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-600 text-white text-[11px] font-black uppercase tracking-wider animate-pulse shadow-md">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                    Jogando Agora
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-live px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-sm">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                    Jogando agora
                   </span>
                 ) : team.matchesToday && team.matchesToday > 0 ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-futebol-500/20 text-futebol-300 text-[11px] font-bold border border-futebol-500/30">
-                    <Clock className="w-3 h-3" />
-                    Partida agendada para hoje
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-white/80">
+                    <Clock className="h-3 w-3" />
+                    Joga hoje
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 text-white/80 text-[11px] font-medium">
-                    Temporada Regular
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-bold text-white/80">
+                    Temporada regular
                   </span>
                 )}
               </div>
@@ -232,58 +233,34 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
         <div
           role="tablist"
           aria-label="Seções do clube"
-          className="flex items-center gap-1 border-b border-border text-xs font-semibold"
+          className="flex items-center gap-1 rounded-2xl border border-border/70 bg-muted/60 p-1 text-[11px] font-bold"
         >
-          <button
-            role="tab"
-            aria-selected={activeTab === "geral"}
-            aria-controls="tab-geral"
-            id="tab-btn-geral"
-            onClick={() => setActiveTab("geral")}
-            className={cn(
-              "flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
-              activeTab === "geral"
-                ? "border-futebol-600 text-futebol-600 font-bold bg-futebol-50/50 dark:bg-futebol-950/20"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Visão Geral</span>
-          </button>
-
-          <button
-            role="tab"
-            aria-selected={activeTab === "jogos"}
-            aria-controls="tab-jogos"
-            id="tab-btn-jogos"
-            onClick={() => setActiveTab("jogos")}
-            className={cn(
-              "flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
-              activeTab === "jogos"
-                ? "border-futebol-600 text-futebol-600 font-bold bg-futebol-50/50 dark:bg-futebol-950/20"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Jogos Recentes</span>
-          </button>
-
-          <button
-            role="tab"
-            aria-selected={activeTab === "sobre"}
-            aria-controls="tab-sobre"
-            id="tab-btn-sobre"
-            onClick={() => setActiveTab("sobre")}
-            className={cn(
-              "flex items-center gap-1.5 px-3.5 py-2 rounded-t-xl transition-all border-b-2 whitespace-nowrap",
-              activeTab === "sobre"
-                ? "border-futebol-600 text-futebol-600 font-bold bg-futebol-50/50 dark:bg-futebol-950/20"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Info className="w-3.5 h-3.5" />
-            <span>Sobre o Clube</span>
-          </button>
+          {[
+            { id: "geral" as const, label: "Visão geral", icon: TrendingUp },
+            { id: "jogos" as const, label: "Jogos", icon: Clock },
+            { id: "sobre" as const, label: "Sobre", icon: Info },
+          ].map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tab-${tab.id}`}
+                id={`tab-btn-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-xl px-2 py-2 transition-all",
+                  activeTab === tab.id
+                    ? "bg-card text-foreground shadow-sm ring-1 ring-border/70"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
         </div>
 
         {/* Tab 1: Visão Geral */}
@@ -295,16 +272,16 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
             className="space-y-4"
           >
             {/* Next and Last Match Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid gap-3">
               {/* Next Match */}
-              <div className="rounded-2xl border border-border bg-card p-4 space-y-2 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-futebol-600" />
-                    Próximo Jogo
+              <div className="surface space-y-2 p-4">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1 font-black uppercase tracking-[0.12em]">
+                    <Clock className="h-3.5 w-3.5 text-primary" />
+                    Próximo jogo
                   </span>
                   {nextMatch && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-futebol-50 dark:bg-futebol-950/50 text-futebol-600 font-bold">
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary">
                       {nextMatch.competition || "Agendado"}
                     </span>
                   )}
@@ -313,38 +290,34 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                 {nextMatch ? (
                   <Link
                     href={`/jogos/${nextMatch.id}`}
-                    className="block p-2.5 rounded-xl bg-muted/40 hover:bg-muted transition-colors border border-border/80 group"
+                    className="group block rounded-xl border border-border/70 bg-muted/40 p-2.5 transition-colors hover:bg-muted"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold">{nextMatch.homeTeam.name}</span>
-                      </div>
-                      <span className="px-2 py-0.5 rounded-lg bg-background text-xs font-bold tabular-nums">
+                      <span className="min-w-0 flex-1 truncate text-xs font-bold">{nextMatch.homeTeam.name}</span>
+                      <span className="tabular rounded-lg bg-background px-2 py-0.5 text-xs font-black">
                         {nextMatch.kickoff || formatTime(nextMatch.date)}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold">{nextMatch.awayTeam.name}</span>
-                      </div>
+                      <span className="min-w-0 flex-1 truncate text-right text-xs font-bold">{nextMatch.awayTeam.name}</span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground pt-1.5 border-t border-border/50">
+                    <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-1.5 text-[10px] text-muted-foreground">
                       <span>Ver centro da partida</span>
-                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                     </div>
                   </Link>
                 ) : (
-                  <p className="text-xs text-muted-foreground py-3">Sem partida agendada para os próximos dias.</p>
+                  <p className="py-3 text-[11px] text-muted-foreground">Sem partida agendada para os próximos dias.</p>
                 )}
               </div>
 
               {/* Last Match */}
-              <div className="rounded-2xl border border-border bg-card p-4 space-y-2 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="font-bold uppercase tracking-wider flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                    Último Resultado
+              <div className="surface space-y-2 p-4">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span className="flex items-center gap-1 font-black uppercase tracking-[0.12em]">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    Último resultado
                   </span>
                   {lastMatch && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground font-bold">
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
                       {lastMatch.competition || "Encerrado"}
                     </span>
                   )}
@@ -353,37 +326,37 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                 {lastMatch ? (
                   <Link
                     href={`/jogos/${lastMatch.id}`}
-                    className="block p-2.5 rounded-xl bg-muted/40 hover:bg-muted transition-colors border border-border/80 group"
+                    className="group block rounded-xl border border-border/70 bg-muted/40 p-2.5 transition-colors hover:bg-muted"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-semibold">{lastMatch.homeTeam.name}</span>
-                      <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-background font-bold text-xs tabular-nums shadow-sm">
+                      <span className="min-w-0 flex-1 truncate text-xs font-bold">{lastMatch.homeTeam.name}</span>
+                      <div className="tabular flex items-center gap-1 rounded-lg bg-background px-2.5 py-0.5 text-xs font-black shadow-sm">
                         <span>{lastMatch.homeScore ?? "-"}</span>
-                        <span>:</span>
+                        <span className="text-muted-foreground">:</span>
                         <span>{lastMatch.awayScore ?? "-"}</span>
                       </div>
-                      <span className="text-xs font-semibold">{lastMatch.awayTeam.name}</span>
+                      <span className="min-w-0 flex-1 truncate text-right text-xs font-bold">{lastMatch.awayTeam.name}</span>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground pt-1.5 border-t border-border/50">
+                    <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-1.5 text-[10px] text-muted-foreground">
                       <span>Ver pós-jogo</span>
-                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                      <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                     </div>
                   </Link>
                 ) : (
-                  <p className="text-xs text-muted-foreground py-3">Sem partidas registradas recentemente.</p>
+                  <p className="py-3 text-[11px] text-muted-foreground">Sem partidas registradas recentemente.</p>
                 )}
               </div>
             </div>
 
             {/* Recent Form Cards */}
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm">
+            <div className="surface space-y-3 p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-futebol-600" />
-                  <span>Histórico de Resultados Recentes</span>
+                <h3 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                  <span>Resultados recentes</span>
                 </h3>
-                <span className="text-[10px] text-muted-foreground">
-                  {formMatches.length} jogos analisados
+                <span className="tabular text-[10px] font-bold text-muted-foreground">
+                  {formMatches.length}
                 </span>
               </div>
 
@@ -402,15 +375,15 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                     if (myScore !== null && oppScore !== null) {
                       if (myScore > oppScore) {
                         statusText = "V"
-                        statusBg = "bg-emerald-600 text-white"
+                        statusBg = "bg-primary text-primary-foreground"
                         statusLabel = "Vitória"
                       } else if (myScore < oppScore) {
                         statusText = "D"
-                        statusBg = "bg-red-600 text-white"
+                        statusBg = "bg-live text-white"
                         statusLabel = "Derrota"
                       } else {
                         statusText = "E"
-                        statusBg = "bg-amber-500 text-white"
+                        statusBg = "bg-warning text-white"
                         statusLabel = "Empate"
                       }
                     }
@@ -419,31 +392,31 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                       <Link
                         key={m.id}
                         href={`/jogos/${m.id}`}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-border bg-muted/30 hover:bg-muted transition-colors group"
+                        className="group flex items-center justify-between rounded-xl border border-border/70 bg-muted/30 p-2.5 transition-colors hover:bg-muted"
                       >
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
                           <span
                             title={statusLabel}
                             aria-label={statusLabel}
-                            className={cn("w-6 h-6 rounded-lg font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm", statusBg)}
+                            className={cn("flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg text-[10px] font-black", statusBg)}
                           >
                             {statusText}
                           </span>
-                          <div>
-                            <p className="text-xs font-semibold text-foreground">
-                              {isHome ? "Casa contra" : "Fora contra"} {opponent.name}
+                          <div className="min-w-0">
+                            <p className="truncate text-[11px] font-bold text-foreground">
+                              {isHome ? "Casa" : "Fora"} · {opponent.name}
                             </p>
-                            <span className="text-[10px] text-muted-foreground">
+                            <span className="block truncate text-[9.5px] text-muted-foreground">
                               {m.competition}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold tabular-nums">
+                        <div className="flex flex-shrink-0 items-center gap-2">
+                          <span className="tabular text-[11px] font-black">
                             {myScore !== null && oppScore !== null ? `${myScore} - ${oppScore}` : m.kickoff}
                           </span>
-                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" />
                         </div>
                       </Link>
                     )
@@ -466,8 +439,8 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
             aria-labelledby="tab-btn-jogos"
             className="space-y-3"
           >
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="surface space-y-3 p-4">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
                 Últimos jogos do {team.name}
               </h3>
               {formMatches.length > 0 ? (
@@ -476,24 +449,24 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                     <Link
                       key={m.id}
                       href={`/jogos/${m.id}`}
-                      className="py-3 flex items-center justify-between hover:bg-muted/30 px-2 rounded-lg transition-colors"
+                      className="flex items-center justify-between rounded-lg px-1 py-2.5 transition-colors hover:bg-muted/40"
                     >
-                      <div>
-                        <div className="flex items-center gap-2 text-xs font-semibold">
-                          <span>{m.homeTeam.name}</span>
-                          <span className="font-bold text-futebol-600">x</span>
-                          <span>{m.awayTeam.name}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 truncate text-[11px] font-bold">
+                          <span className="truncate">{m.homeTeam.name}</span>
+                          <span className="flex-shrink-0 font-black text-primary">x</span>
+                          <span className="truncate">{m.awayTeam.name}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
-                          {m.competition} • {m.kickoff || formatTime(m.date)}
+                        <span className="text-[9.5px] text-muted-foreground">
+                          {m.competition} · {m.kickoff || formatTime(m.date)}
                         </span>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                     </Link>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground py-4">Nenhum jogo recente disponível.</p>
+                <p className="py-4 text-[11px] text-muted-foreground">Nenhum jogo recente disponível.</p>
               )}
             </div>
           </div>
@@ -505,35 +478,35 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
             id="tab-sobre"
             role="tabpanel"
             aria-labelledby="tab-btn-sobre"
-            className="rounded-2xl border border-border bg-card p-4 space-y-4 shadow-sm"
+            className="surface space-y-4 p-4"
           >
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                História & Informações
+              <h3 className="mb-2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                História & informações
               </h3>
-              <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">
+              <p className="whitespace-pre-line text-[11px] leading-relaxed text-foreground/80">
                 {team.description ||
                   "Informações sobre a história deste clube não estão disponíveis na fonte de dados atual."}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-border text-xs">
-              <div className="p-3 rounded-xl bg-muted/40 border border-border">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">
-                  Estádio Oficial
+            <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-[11px]">
+              <div className="rounded-xl border border-border/70 bg-muted/40 p-2.5">
+                <span className="mb-0.5 block text-[9px] font-black uppercase tracking-wide text-muted-foreground">
+                  Estádio
                 </span>
-                <span className="font-semibold text-foreground">
+                <span className="font-bold text-foreground">
                   {team.venue?.name && team.venue.name !== "Local a confirmar"
                     ? team.venue.name
                     : "Não informado"}
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-muted/40 border border-border">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold block mb-1">
-                  Ano de Fundação
+              <div className="rounded-xl border border-border/70 bg-muted/40 p-2.5">
+                <span className="mb-0.5 block text-[9px] font-black uppercase tracking-wide text-muted-foreground">
+                  Fundação
                 </span>
-                <span className="font-semibold text-foreground">
+                <span className="font-bold text-foreground">
                   {team.founded || "Não informado"}
                 </span>
               </div>
@@ -541,12 +514,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
           </div>
         )}
 
-        {/* Toast */}
-        {toastMessage && (
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-foreground text-background text-xs font-bold rounded-full shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            {toastMessage}
-          </div>
-        )}
+        {toastMessage && <Toast>{toastMessage}</Toast>}
       </div>
     </ErrorBoundary>
   )

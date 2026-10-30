@@ -17,7 +17,7 @@ function escapeRegExp(value: string): string {
 export function Highlight({
   text,
   query,
-  className = "font-semibold text-futebol-400",
+  className = "font-semibold text-primary",
 }: {
   text: string
   query: string

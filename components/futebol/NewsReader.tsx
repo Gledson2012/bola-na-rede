@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import type { News } from "@/types"
 import { ExternalLink, Clock, Share2, X, Newspaper } from "lucide-react"
+import { SoccerBallIcon } from "@/components/icons/soccer-ball"
 import { formatRelativeTime, formatShortDateTime } from "@/lib/utils"
 
 interface NewsReaderProps {
@@ -14,6 +15,8 @@ interface NewsReaderProps {
 
 export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const [imgError, setImgError] = useState(false)
+  const imageSrc = !imgError && news.image ? news.image : null
 
   // Fecha com Escape, prende o foco dentro do diálogo e trava a rolagem do
   // fundo. Sem o focus trap, Tab levava o foco para a página atrás do modal.
@@ -94,19 +97,20 @@ export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-3xl border border-border bg-background p-4 shadow-2xl outline-none sm:p-5"
+        className="relative max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl border border-border bg-background p-4 shadow-2xl outline-none sm:p-5"
         onClick={(event) => event.stopPropagation()}
       >
         {/* Imagem */}
-        {news.image && (
+        {news.image ? (
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted">
             <Image
               src={news.image}
-              alt={news.title}
+              alt=""
               fill
               className="object-cover"
               sizes="(max-width: 640px) 100vw, 512px"
               unoptimized
+              onError={() => setImgError(true)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1.5">
@@ -122,11 +126,15 @@ export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
               )}
             </div>
           </div>
+        ) : (
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 to-muted flex items-center justify-center">
+            <SoccerBallIcon className="h-24 w-24 -translate-y-1/2 text-primary/25" />
+          </div>
         )}
 
         {/* Ações */}
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-futebol-600/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-futebol-700 dark:text-futebol-400">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
             <Newspaper className="h-3 w-3" />
             {news.provider || "Notícia"}
           </span>
@@ -186,7 +194,7 @@ export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
               href={news.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-futebol-600 px-4 py-3 text-xs font-bold text-white shadow-md transition-colors hover:bg-futebol-700 sm:flex-1"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-xs font-bold text-white shadow-md transition-colors hover:bg-primary/90 sm:flex-1"
             >
               <span>Ler matéria completa no {news.provider || "portal"}</span>
               <ExternalLink className="h-4 w-4" />

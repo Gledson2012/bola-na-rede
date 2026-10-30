@@ -157,27 +157,26 @@ export function LiveAlertsControl() {
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="surface p-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="min-w-0">
-          <h2 className="text-sm font-bold">Alertas de partidas ao vivo</h2>
-          <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">
-            Verificação automática a cada 5 minutos; receba avisos de gols e cartões
-            mesmo com o app fechado.
+          <h2 className="text-[12px] font-black tracking-tight">Alertas de partidas ao vivo</h2>
+          <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
+            Avisos de gols e cartões mesmo com o app fechado.
           </p>
         </div>
         <button
           type="button"
           onClick={() => void toggleSubscription()}
           disabled={busy || loadingConfig || (!config?.pushConfigured && !isSubscribed)}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-muted px-3 py-2 text-xs font-bold hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-50"
+          className="press flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[10px] font-black text-primary hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy || loadingConfig ? (
-            <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+            <LoaderCircle className="h-3 w-3 animate-spin" />
           ) : isSubscribed ? (
-            <BellOff className="h-3.5 w-3.5" />
+            <BellOff className="h-3 w-3" />
           ) : (
-            <Bell className="h-3.5 w-3.5" />
+            <Bell className="h-3 w-3" />
           )}
           {loadingConfig
             ? "Verificando…"
@@ -189,18 +188,17 @@ export function LiveAlertsControl() {
         </button>
       </div>
       {config && !config.pushConfigured && (
-        <p className="mt-3 text-[10px] text-amber-700 dark:text-amber-400">
-          O servidor ainda precisa de Redis e chaves VAPID para habilitar push.
+        <p className="mt-2 text-[9.5px] text-muted-foreground">
+          Alertas push indisponíveis neste servidor no momento.
         </p>
       )}
       {config && config.pushConfigured && !config.aiConfigured && (
-        <p className="mt-3 text-[10px] text-muted-foreground">
-          Os alertas por evento estarão ativos; resumos por IA serão habilitados
-          quando a chave OpenRouter gratuita estiver configurada no servidor.
+        <p className="mt-2 text-[9.5px] text-muted-foreground">
+          Alertas por evento ativos; resumos por IA chegam em breve.
         </p>
       )}
       {message && (
-        <p className="mt-3 text-[10px] text-futebol-700 dark:text-futebol-400" role="status">
+        <p className="mt-3 text-[10px] text-primary" role="status">
           {message}
         </p>
       )}
@@ -211,7 +209,7 @@ export function LiveAlertsControl() {
             <button
               type="button"
               onClick={() => void loadConfig()}
-              className="text-[10px] font-bold text-futebol-700 underline underline-offset-2 dark:text-futebol-400"
+              className="text-[10px] font-bold text-primary underline underline-offset-2"
             >
               Tentar novamente
             </button>

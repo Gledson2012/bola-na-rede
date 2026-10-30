@@ -1,13 +1,22 @@
 "use client"
 
 import { useState, useMemo, useCallback, useEffect } from "react"
+import {
+  Newspaper,
+  Search,
+  RefreshCw,
+  X,
+} from "lucide-react"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { NewsCard } from "@/components/futebol/NewsCard"
 import { NewsReader } from "@/components/futebol/NewsReader"
 import { Highlight } from "@/components/futebol/Highlight"
 import { NewsCardSkeleton } from "@/components/Skeleton"
+import { PageHeader } from "@/components/ui/page-header"
+import { FilterChip } from "@/components/ui/filter-chip"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Toast } from "@/components/ui/toast"
 import { useNews } from "@/lib/queries"
-import { Newspaper, Search, RefreshCw, X, Globe } from "lucide-react"
 import { cn, formatRelativeTime, copyToClipboard } from "@/lib/utils"
 import { useToast } from "@/lib/use-toast"
 import type { News } from "@/types"
@@ -26,8 +35,8 @@ export default function NoticiasClient({
   const [readingNews, setReadingNews] = useState<News | null>(null)
   const { message: toastMessage, show: showToast } = useToast()
 
-  // O `localStorage` só existe no navegador: a leitura acontece no efeito para
-  // não quebrar a renderização do servidor (SSR/prerender do Next).
+  // O `localStorage` só existe no navegador: leitura no efeito para não quebrar
+  // a renderização no servidor.
   const [savedNews, setSavedNews] = useState<News[]>([])
 
   useEffect(() => {
@@ -37,16 +46,15 @@ export default function NoticiasClient({
       const parsed = JSON.parse(stored)
       if (Array.isArray(parsed)) setSavedNews(parsed as News[])
     } catch {
-      // Storage indisponível (modo privado) ou conteúdo corrompido.
       setSavedNews([])
     }
   }, [])
 
-  const saveNews = (news: News) => {
+  const saveNews = (newsItem: News) => {
     setSavedNews((prev) => {
-      const exists = prev.some((item) => item.id === news.id)
+      const exists = prev.some((item) => item.id === newsItem.id)
       if (exists) return prev
-      const updated = [...prev, news]
+      const updated = [...prev, newsItem]
       try {
         localStorage.setItem("saved_news", JSON.stringify(updated))
       } catch {
@@ -54,7 +62,7 @@ export default function NoticiasClient({
       }
       return updated
     })
-    showToast("Notícia salva para ler depois! 📌")
+    showToast("Notícia salva para ler depois 🔖")
   }
 
   const removeSavedNews = (newsId: string) => {
@@ -69,11 +77,8 @@ export default function NoticiasClient({
     })
   }
 
-  const isNewsSaved = (newsId: string) => {
-    return savedNews.some((item) => item.id === newsId)
-  }
+  const isNewsSaved = (newsId: string) => savedNews.some((item) => item.id === newsId)
 
-  // Fontes disponíveis, com a contagem de matérias de cada uma.
   const providers = useMemo(() => {
     const counts = new Map<string, number>()
     news.forEach((item) => {
@@ -83,7 +88,6 @@ export default function NoticiasClient({
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
   }, [news])
 
-  // Categorias disponíveis, com a contagem de matérias de cada uma.
   const categories = useMemo(() => {
     const counts = new Map<string, number>()
     news.forEach((item) => {
@@ -92,11 +96,6 @@ export default function NoticiasClient({
     })
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])
   }, [news])
-
-  /**
-   * Filtragem + ordenação cronológica. A API entrega as matérias sem ordem
-   * garantida, então a mais recente sempre fica no topo.
-   */
 
   const filteredNews = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR")
@@ -112,7 +111,9 @@ export default function NoticiasClient({
         item.content ?? "",
         item.provider ?? "",
         item.category,
-      ].join(" ").toLocaleLowerCase("pt-BR")
+      ]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR")
       return combined.includes(query)
     })
 
@@ -146,9 +147,8 @@ export default function NoticiasClient({
             text: item.excerpt,
             url,
           })
-        } catch (error) {
-          // AbortError = usuário fechou o menu nativo: não é falha.
-          if (error instanceof Error && error.name !== "AbortError") {
+        } catch (shareError) {
+          if (shareError instanceof Error && shareError.name !== "AbortError") {
             showToast("Não foi possível compartilhar.")
           }
         }
@@ -156,7 +156,7 @@ export default function NoticiasClient({
       }
 
       const copied = await copyToClipboard(url)
-      showToast(copied ? "Link da notícia copiado! 📋" : "Não foi possível copiar o link.")
+      showToast(copied ? "Link da notícia copiado 📋" : "Não foi possível copiar o link.")
     },
     [showToast]
   )
@@ -167,37 +167,46 @@ export default function NoticiasClient({
     setSelectedCategory(null)
   }
 
+  const hasFilters = Boolean(search || selectedProvider || selectedCategory)
+
   if (error && news.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center px-4 py-20 text-center">
-        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <Newspaper className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-base font-bold text-foreground">
-          Não foi possível carregar as notícias
-        </h3>
-        <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-          Verifique sua conexão e tente novamente.
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="mt-4 rounded-xl bg-futebol-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-futebol-700"
-        >
-          Tentar novamente
-        </button>
-      </div>
+      <EmptyState
+        icon={Newspaper}
+        tone="error"
+        title="Não foi possível carregar as notícias"
+        description="Verifique sua conexão e tente novamente."
+        action={
+          <button
+            onClick={() => refetch()}
+            className="press rounded-full bg-primary px-4 py-2 text-[11px] font-black text-primary-foreground"
+          >
+            Tentar novamente
+          </button>
+        }
+      />
     )
   }
 
   if (isLoading) {
     return (
-      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar notícias" onRetry={() => { reset(); refetch() }} />)}>
-        <div className="flex h-full flex-col space-y-4 py-3">
-          <div className="h-28 animate-pulse rounded-2xl bg-muted" />
-          <div className="h-10 animate-pulse rounded-xl bg-muted" />
-          <div className="h-56 animate-pulse rounded-2xl bg-muted" />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
+      <ErrorBoundary
+        fallback={(reset) => (
+          <ErrorFallback
+            message="Erro ao carregar notícias"
+            onRetry={() => {
+              reset()
+              refetch()
+            }}
+          />
+        )}
+      >
+        <div className="space-y-4 py-3">
+          <div className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+          <div className="h-10 animate-pulse rounded-2xl bg-muted" />
+          <div className="h-52 animate-pulse rounded-2xl bg-muted" />
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, index) => (
               <NewsCardSkeleton key={index} />
             ))}
           </div>
@@ -207,176 +216,139 @@ export default function NoticiasClient({
   }
 
   return (
-    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar notícias" onRetry={() => { reset(); refetch() }} />)}>
-      <div className="flex h-full flex-col space-y-4 pb-12">
-        {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl border border-futebol-800 bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 p-4 text-white shadow-lg">
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-futebol-600/30 font-bold text-futebol-400">
-                  <Newspaper className="h-4 w-4" />
-                </div>
-                <h1 className="text-xl font-black tracking-tight sm:text-2xl">
-                  Notícias do Futebol
-                </h1>
-              </div>
-              <p className="mt-0.5 text-xs text-white/70">
-                Cobertura jornalística, bastidores, transferências e resultados
-              </p>
-            </div>
-
+    <ErrorBoundary
+      fallback={(reset) => (
+        <ErrorFallback
+          message="Erro ao carregar notícias"
+          onRetry={() => {
+            reset()
+            refetch()
+          }}
+        />
+      )}
+    >
+      <div className="flex flex-col gap-4 pb-6">
+        <PageHeader
+          eyebrow="Giro esportivo"
+          title="Notícias"
+          subtitle={
+            latestUpdate
+              ? `${news.length} matérias · última ${formatRelativeTime(latestUpdate)}`
+              : `${news.length} matérias de ${providers.length} fontes`
+          }
+          action={
             <button
               onClick={() => refetch()}
               disabled={isRefetching}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-white/25",
-                isRefetching && "opacity-75"
-              )}
+              className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
               title="Atualizar notícias"
+              aria-label="Atualizar notícias"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin")} />
-              <span>{isRefetching ? "Atualizando..." : "Atualizar"}</span>
+              <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
             </button>
-          </div>
+          }
+        />
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/15 pt-3 text-xs text-white/80">
-            <span>
-              Total: <strong className="text-white">{news.length} matérias</strong>
-            </span>
-            <span className="text-white/40">•</span>
-            <span>
-              Fontes:{" "}
-              <strong className="text-white">{providers.length}</strong>
-            </span>
-            {categories.length > 0 && (
-              <>
-                <span className="text-white/40">•</span>
-                <span>
-                  Categorias:{" "}
-                  <strong className="text-white">{categories.length}</strong>
-                </span>
-              </>
-            )}
-            {latestUpdate && (
-              <>
-                <span className="text-white/40">•</span>
-                <span>
-                  Última em{" "}
-                  <strong className="text-white" suppressHydrationWarning>
-                    {formatRelativeTime(latestUpdate)}
-                  </strong>
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Filtros */}
-        <div className="sticky top-14 z-30 space-y-2.5 border-b border-border bg-background/95 py-2 backdrop-blur-md">
-          <div className="relative flex items-center">
-            <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por jogador, clube, técnico ou assunto..."
-              className="w-full rounded-2xl border border-border bg-muted/60 py-2.5 pl-9 pr-9 text-xs transition-all hover:bg-muted/90 focus:bg-background focus:border-futebol-500 focus:outline-none focus:ring-2 focus:ring-futebol-500/20 sm:text-sm"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 rounded-full p-1 text-muted-foreground hover:text-foreground"
-                aria-label="Limpar busca"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-semibold scrollbar-hide">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar jogador, clube ou assunto"
+            aria-label="Buscar notícias"
+            className="h-10 w-full rounded-2xl border border-border/80 bg-card pl-10 pr-10 text-[12px] font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
+          />
+          {search && (
             <button
-              onClick={() => setSelectedProvider(null)}
-              aria-pressed={selectedProvider === null}
-              className={cn(
-                "whitespace-nowrap rounded-xl border px-3 py-1.5 transition-all",
-                selectedProvider === null
-                  ? "border-futebol-600 bg-futebol-600 text-white shadow-sm"
-                  : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Limpar busca"
             >
-              Todas as Fontes
-              <span className="ml-1 text-[10px] opacity-80">({news.length})</span>
+              <X className="h-3.5 w-3.5" />
             </button>
-
-            {providers.map(([name, count]) => {
-              const isSelected = selectedProvider === name
-              return (
-                <button
-                  key={name}
-                  onClick={() => setSelectedProvider(isSelected ? null : name)}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    "flex items-center gap-1 whitespace-nowrap rounded-xl border px-3 py-1.5 transition-all",
-                    isSelected
-                      ? "border-futebol-600 bg-futebol-600 text-white shadow-sm"
-                      : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Globe className="h-3 w-3" />
-                  <span>{name}</span>
-                  <span className="text-[10px] opacity-80">({count})</span>
-                </button>
-              )
-            })}
-            {categories.map(([name, count]) => {
-              const isSelected = selectedCategory === name
-              return (
-                <button
-                  key={name}
-                  onClick={() => setSelectedCategory(isSelected ? null : name)}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    "flex items-center gap-1 whitespace-nowrap rounded-xl border px-3 py-1.5 transition-all",
-                    isSelected
-                      ? "border-futebol-600 bg-futebol-600 text-white shadow-sm"
-                      : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Newspaper className="h-3 w-3" />
-                  <span>{name}</span>
-                  <span className="text-[10px] opacity-80">({count})</span>
-                </button>
-              )
-            })}
-          </div>
+          )}
         </div>
 
-        {/* Feed */}
-        {filteredNews.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 px-4 py-16 text-center">
-            <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-              <Newspaper className="h-8 w-8 text-muted-foreground/60" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">
-              Nenhuma notícia encontrada
-            </h3>
-            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              {search
-                ? `Nenhum resultado para “${search}”.`
-                : "Não há notícias disponíveis para o filtro selecionado."}
-            </p>
-            {(search || selectedProvider || selectedCategory) && (
+        {categories.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+            <FilterChip
+              active={!selectedCategory}
+              onClick={() => setSelectedCategory(null)}
+            >
+              Tudo
+            </FilterChip>
+            {categories.map(([name, count]) => (
+              <FilterChip
+                key={name}
+                active={selectedCategory === name}
+                onClick={() =>
+                  setSelectedCategory(selectedCategory === name ? null : name)
+                }
+                count={count}
+              >
+                {name}
+              </FilterChip>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-semibold text-muted-foreground">
+            {filteredNews.length}{" "}
+            {filteredNews.length === 1 ? "matéria" : "matérias"}
+          </span>
+
+          <div className="flex items-center gap-2">
+            {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="mt-4 rounded-xl bg-futebol-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-futebol-700"
+                className="text-[10px] font-bold text-primary hover:underline"
               >
-                Limpar filtros
+                Limpar
               </button>
             )}
+            <label htmlFor="news-source" className="sr-only">
+              Filtrar por fonte
+            </label>
+            <select
+              id="news-source"
+              value={selectedProvider ?? ""}
+              onChange={(event) => setSelectedProvider(event.target.value || null)}
+              className="h-7 max-w-[9.5rem] rounded-full border border-border/80 bg-card px-2 text-[10px] font-bold text-foreground outline-none"
+            >
+              <option value="">Todas as fontes</option>
+              {providers.map(([name]) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </div>
+        </div>
+
+        {filteredNews.length === 0 ? (
+          <EmptyState
+            icon={Newspaper}
+            title="Nenhuma notícia encontrada"
+            description={
+              search
+                ? `Nenhum resultado para “${search}”.`
+                : "Não há notícias para os filtros selecionados."
+            }
+            action={
+              hasFilters ? (
+                <button
+                  onClick={clearFilters}
+                  className="press rounded-full bg-primary px-4 py-2 text-[11px] font-black text-primary-foreground"
+                >
+                  Limpar filtros
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {featuredStory && (
               <NewsCard
                 news={featuredStory}
@@ -396,14 +368,14 @@ export default function NoticiasClient({
             )}
 
             {remainingStories.length > 0 && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+              <div className="space-y-2">
                 {remainingStories.map((item) => (
                   <NewsCard
                     key={item.id}
                     news={item}
                     titleNode={<Highlight text={item.title} query={search} />}
                     excerptNode={<Highlight text={item.excerpt || ""} query={search} />}
-                    onOpenReader={(news) => setReadingNews(news)}
+                    onOpenReader={(newsItem) => setReadingNews(newsItem)}
                     isSaved={isNewsSaved(item.id)}
                     onSaveToggle={() => {
                       if (isNewsSaved(item.id)) {
@@ -427,16 +399,7 @@ export default function NoticiasClient({
           />
         )}
 
-        {/* Toast */}
-        {toastMessage && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 animate-in rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background shadow-2xl fade-in zoom-in-95 duration-150"
-          >
-            {toastMessage}
-          </div>
-        )}
+        {toastMessage && <Toast>{toastMessage}</Toast>}
       </div>
     </ErrorBoundary>
   )

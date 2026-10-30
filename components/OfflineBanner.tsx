@@ -33,7 +33,7 @@ export function OfflineBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center justify-center gap-1.5 border-b border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400"
+      className="flex items-center justify-center gap-1.5 border-b border-warning/25 bg-warning/10 px-3 py-1.5 text-[10px] font-bold text-warning"
     >
       <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       Sem conexão — mostrando os últimos dados salvos.

@@ -13,22 +13,24 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 
 export function MatchCardSkeleton() {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <Skeleton className="w-10 h-10 rounded-full" />
-          <Skeleton className="w-20 h-4" />
+    <div className="flex items-center gap-3 rounded-2xl border border-border/80 bg-card px-3 py-3" aria-hidden="true">
+      <div className="flex w-10 flex-col items-center gap-1.5">
+        <Skeleton className="h-3 w-8" />
+        <Skeleton className="h-2 w-6" />
+      </div>
+      <div className="flex-1 space-y-2">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-[18px] w-[18px] rounded-full" />
+          <Skeleton className="h-3 flex-1" />
+          <Skeleton className="h-3 w-4" />
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-1 min-w-[70px]">
-          <Skeleton className="w-20 h-10" />
-          <Skeleton className="w-24 h-3" />
-        </div>
-        <div className="flex items-center gap-2.5 flex-shrink-0">
-          <Skeleton className="w-20 h-4" />
-          <Skeleton className="w-10 h-10 rounded-full" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-[18px] w-[18px] rounded-full" />
+          <Skeleton className="h-3 flex-1" />
+          <Skeleton className="h-3 w-4" />
         </div>
       </div>
-      <Skeleton className="mt-3 h-3 w-1/4" />
+      <Skeleton className="h-8 w-8 rounded-full" />
     </div>
   )
 }
@@ -79,12 +81,12 @@ export function TeamCardSkeleton({
 
 export function NewsCardSkeleton() {
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <Skeleton className="aspect-video w-full" />
-      <div className="p-3 space-y-2">
-        <Skeleton className="h-5 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
+    <div className="overflow-hidden rounded-2xl border border-border/80 bg-card">
+      <Skeleton className="aspect-[16/9] w-full" />
+      <div className="space-y-2 p-3.5">
         <Skeleton className="h-3 w-1/4" />
+        <Skeleton className="h-4 w-5/6" />
+        <Skeleton className="h-3 w-1/2" />
       </div>
     </div>
   )

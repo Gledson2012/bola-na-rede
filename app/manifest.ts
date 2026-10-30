@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "Acompanhe campeonatos, placares ao vivo, classificações e notícias de futebol.",
     start_url: "/jogos",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#0284c7",
+    background_color: "#f4f8f6",
+    theme_color: "#0d7a53",
     lang: "pt-BR",
     icons: [
       {

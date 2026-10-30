@@ -72,7 +72,7 @@ export function LeagueTable({
   const zones = competitionMeta.zones
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <div className="surface overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
           <caption className="sr-only">
@@ -132,7 +132,7 @@ export function LeagueTable({
                   <td className="px-2 py-2.5">
                     <Link
                       href={`/times/${row.team.id}`}
-                      className="flex items-center gap-2 transition-colors group-hover:text-futebol-600"
+                      className="flex items-center gap-2 transition-colors group-hover:text-primary"
                     >
                       <TeamLogo src={row.team.logo} name={row.team.name} size={22} />
                       <span className="min-w-0">
@@ -171,9 +171,9 @@ export function LeagueTable({
                     <span
                       className={cn(
                         row.goalDifference > 0
-                          ? "text-emerald-600 dark:text-emerald-400"
+                          ? "text-success"
                           : row.goalDifference < 0
-                            ? "text-red-600 dark:text-red-400"
+                            ? "text-destructive"
                             : "text-muted-foreground"
                       )}
                     >
@@ -216,7 +216,7 @@ export function LeagueTable({
                   <td className="py-2.5 pr-3 text-right">
                     <Link
                       href={`/times/${row.team.id}`}
-                      className="text-muted-foreground hover:text-futebol-600"
+                      className="text-muted-foreground hover:text-primary"
                       aria-label={`Abrir perfil de ${row.team.name}`}
                     >
                       <ChevronRight className="inline h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />

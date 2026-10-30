@@ -10,6 +10,9 @@ import { useCompetitions, useCompetitionTable } from "@/lib/queries"
 import { ALL_COMPETITIONS, getCompetitionMeta } from "@/lib/competitions"
 import { Trophy, RefreshCw, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PageHeader } from "@/components/ui/page-header"
+import { FilterChip } from "@/components/ui/filter-chip"
+import { EmptyState } from "@/components/ui/empty-state"
 
 type RegionFilter = "all" | "Brasil" | "Europa" | "América do Sul" | "América do Norte"
 
@@ -109,105 +112,99 @@ function ClassificacaoContent() {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4 pb-12">
-      {/* League Hero Banner */}
-      <div className="rounded-lg bg-card text-card-foreground p-5 border border-border">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{compMeta.flag}</span>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground leading-none">
-              {compMeta.name}
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              {compMeta.country} • {compMeta.continent}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Region Selector Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-medium">
-        {REGION_TABS.map((tab) => (
+    <div className="flex flex-col gap-4 pb-6">
+      <PageHeader
+        eyebrow="Classificação"
+        title={
+          <span className="flex items-center gap-2">
+            <span className="text-2xl leading-none">{compMeta.flag}</span>
+            <span className="truncate">{compMeta.name}</span>
+          </span>
+        }
+        subtitle={`${compMeta.country} · ${compMeta.continent}`}
+        action={
           <button
-            key={tab.value}
-            onClick={() => setSelectedRegion(tab.value)}
-            aria-pressed={selectedRegion === tab.value}
-            className={cn(
-              "px-3 py-1.5 rounded-md transition-colors whitespace-nowrap",
-              selectedRegion === tab.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-accent hover:bg-accent/80 text-muted-foreground"
-            )}
+            onClick={handleRefresh}
+            disabled={isRefetching}
+            className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+            title="Atualizar classificação"
+            aria-label="Atualizar classificação"
           >
-            {tab.label}
+            <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
           </button>
+        }
+      />
+
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+        {REGION_TABS.map((tab) => (
+          <FilterChip
+            key={tab.value}
+            active={selectedRegion === tab.value}
+            onClick={() => setSelectedRegion(tab.value)}
+            count={regionCountByFilter[tab.value]}
+          >
+            <span>{tab.flag}</span>
+            <span>{tab.label}</span>
+          </FilterChip>
         ))}
       </div>
 
-      {/* Resumo da competição */}
-      {standings.length > 0 && <TableStats standings={standings} />}
-
-      {/* Competitions Carousel */}
-      <div className="space-y-2 sticky top-14 z-30 bg-background/95 backdrop-blur-md py-2 border-b border-border">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
-          {filteredCompetitions.map((c) => {
-            const isSelected = c.id === activeCompId
-            return (
-              <button
-                key={c.id}
-                onClick={() => {
-                  selectCompetition(c.id)
-                  setTableSearch("")
-                }}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-2xl transition-all whitespace-nowrap border active:scale-95",
-                  isSelected
-                    ? "bg-futebol-600 text-white border-futebol-600 shadow-md font-bold"
-                    : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
-                )}
-                aria-pressed={isSelected}
-              >
-                <span className="text-base">{c.flag}</span>
-                <span>{c.shortName}</span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Quick Club Search inside table */}
-        {standings.length > 0 && (
-          <div className="relative flex items-center pt-1">
-            <Search className="absolute left-3 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-            <input
-              type="search"
-              value={tableSearch}
-              onChange={(e) => setTableSearch(e.target.value)}
-              placeholder="Filtrar clube..."
-              className="w-full bg-background border border-border rounded-md pl-9 pr-3 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-            />
-            {tableSearch && (
-              <button
-                onClick={() => setTableSearch("")}
-                className="absolute right-2.5 p-1 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-        )}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+        {filteredCompetitions.map((c) => (
+          <FilterChip
+            key={c.id}
+            active={c.id === activeCompId}
+            onClick={() => {
+              selectCompetition(c.id)
+              setTableSearch("")
+            }}
+          >
+            <span>{c.flag}</span>
+            <span>{c.shortName}</span>
+          </FilterChip>
+        ))}
       </div>
 
-      {/* Standings Table Feed */}
-      {error && standings.length === 0 ? (
-        <div className="p-4 rounded-md border border-destructive/30 bg-destructive/5 text-center text-xs text-destructive space-y-2">
-          <p>Erro ao carregar classificação de {compMeta.name}.</p>
-          <button
-            onClick={() => refetchTable()}
-            className="px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground font-semibold"
-          >
-            Tentar Novamente
-          </button>
+      {standings.length > 0 && <TableStats standings={standings} />}
+
+      {standings.length > 0 && (
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={tableSearch}
+            onChange={(e) => setTableSearch(e.target.value)}
+            placeholder="Filtrar clube na tabela"
+            aria-label="Filtrar clube na tabela"
+            className="h-10 w-full rounded-2xl border border-border/80 bg-card pl-10 pr-10 text-[12px] font-medium outline-none placeholder:text-muted-foreground/70 focus:border-primary/50"
+          />
+          {tableSearch && (
+            <button
+              onClick={() => setTableSearch("")}
+              className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Limpar filtro"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
+      )}
+
+      {error && standings.length === 0 ? (
+        <EmptyState
+          icon={Trophy}
+          tone="error"
+          title={`Erro ao carregar ${compMeta.name}`}
+          description="Não foi possível buscar a classificação agora."
+          action={
+            <button
+              onClick={() => refetchTable()}
+              className="press rounded-full bg-primary px-4 py-2 text-[11px] font-black text-primary-foreground"
+            >
+              Tentar novamente
+            </button>
+          }
+        />
       ) : tableLoading ? (
         <LeagueTableSkeleton />
       ) : standings.length > 0 ? (
@@ -217,13 +214,11 @@ function ClassificacaoContent() {
           filterText={tableSearch}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center px-4 rounded-md border border-border bg-card">
-          <Trophy className="w-8 h-8 text-muted-foreground/60 mb-3" />
-          <h3 className="text-sm font-bold text-foreground">Tabela não disponível</h3>
-          <p className="text-xs text-muted-foreground max-w-xs mt-1">
-            A classificação desta competição não está disponível no momento.
-          </p>
-        </div>
+        <EmptyState
+          icon={Trophy}
+          title="Tabela não disponível"
+          description="A classificação desta competição não está disponível no momento."
+        />
       )}
     </div>
   )

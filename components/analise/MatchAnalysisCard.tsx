@@ -81,7 +81,7 @@ function OutcomeTile({
       className={cn(
         "relative overflow-hidden rounded-2xl border p-2.5 text-center transition-all duration-200",
         isFavorite
-          ? "border-futebol-500/40 bg-futebol-500/[0.08] shadow-sm ring-1 ring-futebol-500/20"
+          ? "border-primary/40 bg-primary/[0.06] shadow-sm ring-1 ring-primary/20"
           : "border-border/60 bg-muted/40 hover:bg-muted/70"
       )}
     >
@@ -97,7 +97,7 @@ function OutcomeTile({
       <p
         className={cn(
           "mt-1 text-base font-black tabular-nums tracking-tight",
-          isFavorite ? "text-futebol-500" : "text-foreground"
+          isFavorite ? "text-primary" : "text-foreground"
         )}
       >
         {percent(probability)}
@@ -185,7 +185,7 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
     {
       label: analysis.home.shortName,
       value: probabilities.home,
-      accent: "bg-futebol-600",
+      accent: "bg-primary",
     },
     { label: "Empate", value: probabilities.draw, accent: "bg-amber-400" },
     {
@@ -222,7 +222,7 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
   }
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-all hover:shadow-lg hover:border-futebol-500/30">
+    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:shadow-lg hover:border-primary/30">
       {/* Cabeçalho: competição + amostra */}
       <div className="flex items-start justify-between gap-3 border-b border-border/70 bg-muted/40 px-4 py-3">
         <div className="min-w-0">
@@ -241,7 +241,7 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
               <span className="text-emerald-500 font-extrabold">Encerrado</span>
             ) : (
               <>
-                <Clock className="h-3 w-3 text-futebol-500" />
+                <Clock className="h-3 w-3 text-primary" />
                 {analysis.kickoff || "Horário indisponível"}
               </>
             )}
@@ -294,7 +294,7 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
           aria-label={`Mandante ${percent(probabilities.home)}, empate ${percent(probabilities.draw)}, visitante ${percent(probabilities.away)}`}
         >
           <span
-            className="bg-futebol-600"
+            className="bg-primary"
             style={{ width: `${probabilities.home * 100}%` }}
           />
           <span
@@ -330,7 +330,7 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
           left={analysis.markets.over25.probability}
           rightLabel="Menos de 2,5"
           right={analysis.markets.under25.probability}
-          leftClassName="bg-futebol-600"
+          leftClassName="bg-primary"
           rightClassName="bg-slate-400 dark:bg-slate-600"
         />
         <MarketRow

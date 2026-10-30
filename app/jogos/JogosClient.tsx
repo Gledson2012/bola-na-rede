@@ -1,14 +1,24 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
+import {
+  Search,
+  RefreshCw,
+  Star,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Trophy,
+  Radio,
+} from "lucide-react"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { MatchCard } from "@/components/futebol/MatchCard"
 import { MatchCardSkeleton } from "@/components/Skeleton"
+import { PageHeader } from "@/components/ui/page-header"
+import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control"
+import { FilterChip } from "@/components/ui/filter-chip"
+import { EmptyState } from "@/components/ui/empty-state"
 import { useGlobalMatches, useFavorites } from "@/lib/queries"
-import {
-  Search, Clock, Trophy, RefreshCw, ChevronDown,
-  Star, Grid, List, ChevronUp, Radio, CheckCircle2, X
-} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Match } from "@/types"
 import { getCompetitionMeta } from "@/lib/competitions"
@@ -25,9 +35,6 @@ export default function JogosClient({
     useGlobalMatches(initialMatches)
   const { favorites, pinnedMatches } = useFavorites()
 
-  // `isFavorite`/`isPinnedMatch` do store são funções estáveis: usá-las como
-  // dependência de `useMemo` faz o memo nunca recalcular quando o estado
-  // muda. Usamos os arrays diretamente (eles mudam de identidade).
   const isTeamFavorite = useCallback(
     (teamId: string) => favorites.includes(teamId),
     [favorites]
@@ -38,9 +45,8 @@ export default function JogosClient({
   )
 
   /**
-   * Chave de ordenação por horário. A API entrega apenas a hora ("15:00") e
-   * `Match.date` é fabricada para o dia atual; comparar os dois formatos
-   * diretamente produz uma ordem arbitrária. Normalizamos para "HH:MM".
+   * A API entrega apenas a hora ("15:00") e `Match.date` é fabricada para o
+   * dia atual; normalizamos tudo para "HH:MM" antes de comparar.
    */
   const matchTimeKey = (match: Match): string => {
     if (match.kickoff) return match.kickoff
@@ -53,14 +59,12 @@ export default function JogosClient({
 
   const [activeFilter, setActiveFilter] = useState<FilterStatus>("todos")
   const [activeCompetition, setActiveCompetition] = useState<string | null>(null)
-  const [compactMode, setCompactMode] = useState(false)
   const [sortBy, setSortBy] = useState<SortOption>("time")
   const [search, setSearch] = useState("")
   const [collapsedLeagues, setCollapsedLeagues] = useState<Record<string, boolean>>({})
 
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Aggregate available competitions directly from matches for accurate counts
   const availableCompetitions = useMemo(() => {
     const map = new Map<string, { id: string; name: string; country?: string; count: number }>()
 
@@ -82,7 +86,6 @@ export default function JogosClient({
     return Array.from(map.values()).sort((a, b) => b.count - a.count)
   }, [matches])
 
-  // Count stats
   const stats = useMemo(() => {
     const live = matches.filter((m) => m.status === "live").length
     const upcoming = matches.filter((m) => m.status === "upcoming").length
@@ -97,7 +100,6 @@ export default function JogosClient({
     return { total: matches.length, live, upcoming, finished, pinned }
   }, [matches, isMatchPinned, isTeamFavorite])
 
-  // Toggle collapse for a league section
   const toggleLeagueCollapse = (leagueName: string) => {
     setCollapsedLeagues((prev) => ({
       ...prev,
@@ -105,11 +107,9 @@ export default function JogosClient({
     }))
   }
 
-  // Filter and sort matches
   const processedMatches = useMemo(() => {
     let result = matches
 
-    // 1. Search Query filter
     if (search.trim()) {
       const query = search.trim().toLowerCase()
       result = result.filter((m) => {
@@ -122,12 +122,14 @@ export default function JogosClient({
           m.competitionCountry,
           m.venue,
           m.kickoff,
-        ].filter(Boolean).join(" ").toLowerCase()
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
         return text.includes(query)
       })
     }
 
-    // 2. Status filter
     if (activeFilter === "live") {
       result = result.filter((m) => m.status === "live")
     } else if (activeFilter === "upcoming") {
@@ -143,14 +145,11 @@ export default function JogosClient({
       )
     }
 
-    // 3. Competition filter
     if (activeCompetition) {
       result = result.filter((m) => m.competition === activeCompetition)
     }
 
-    // 4. Sorting
     result = [...result].sort((a, b) => {
-      // Pinned matches come first if viewing all
       if (activeFilter !== "pinned") {
         const aPinned =
           isMatchPinned(a.id) ||
@@ -195,7 +194,6 @@ export default function JogosClient({
     isTeamFavorite,
   ])
 
-  // Separate pinned matches from the rest if in "todos" view
   const { pinnedSectionMatches, groupedByCompetition } = useMemo(() => {
     let pinnedList: Match[] = []
     let restList = processedMatches
@@ -245,12 +243,10 @@ export default function JogosClient({
     isTeamFavorite,
   ])
 
-  // Keyboard navigation shortcuts
+  // Atalhos de teclado (desktop): F busca, R atualiza e 1–5 alternam os filtros.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null
-      // Não sequestra o teclado enquanto o usuário digita, navega num select ou
-      // usa atalhos do navegador/sistema (Ctrl/Alt/Meta + tecla).
       if (
         e.ctrlKey ||
         e.metaKey ||
@@ -274,11 +270,21 @@ export default function JogosClient({
           e.preventDefault()
           searchInputRef.current?.focus()
           break
-        case "1": setActiveFilter("todos"); break
-        case "2": setActiveFilter("live"); break
-        case "3": setActiveFilter("upcoming"); break
-        case "4": setActiveFilter("finished"); break
-        case "5": setActiveFilter("pinned"); break
+        case "1":
+          setActiveFilter("todos")
+          break
+        case "2":
+          setActiveFilter("live")
+          break
+        case "3":
+          setActiveFilter("upcoming")
+          break
+        case "4":
+          setActiveFilter("finished")
+          break
+        case "5":
+          setActiveFilter("pinned")
+          break
       }
     }
     window.addEventListener("keydown", handleKeyDown)
@@ -286,9 +292,7 @@ export default function JogosClient({
   }, [refetch])
 
   const hasActiveFilters =
-    activeFilter !== "todos" ||
-    activeCompetition !== null ||
-    search.trim() !== ""
+    activeFilter !== "todos" || activeCompetition !== null || search.trim() !== ""
 
   const handleResetFilters = () => {
     setActiveFilter("todos")
@@ -296,39 +300,53 @@ export default function JogosClient({
     setSearch("")
   }
 
+  const filterOptions: SegmentOption<FilterStatus>[] = [
+    { value: "todos", label: "Todos", count: stats.total },
+    { value: "live", label: "Ao vivo", count: stats.live, tone: "live" },
+    { value: "upcoming", label: "Em breve", count: stats.upcoming },
+    { value: "finished", label: "Fim", count: stats.finished },
+    { value: "pinned", label: "Fixados", count: stats.pinned, tone: "warning" },
+  ]
+
   if (error && matches.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-          <Trophy className="w-8 h-8 text-muted-foreground" />
-        </div>
-        <h3 className="text-base font-bold text-foreground">Não foi possível carregar as partidas</h3>
-        <p className="text-xs text-muted-foreground max-w-xs mt-1">
-          Verifique sua conexão e tente novamente.
-        </p>
-        <button
-          onClick={() => refetch()}
-          className="mt-4 px-4 py-2 rounded-xl bg-futebol-600 text-white text-xs font-bold hover:bg-futebol-700 transition-colors shadow-sm"
-        >
-          Tentar novamente
-        </button>
-      </div>
+      <EmptyState
+        icon={Trophy}
+        tone="error"
+        title="Não foi possível carregar as partidas"
+        description="Verifique sua conexão e tente novamente."
+        action={
+          <button
+            onClick={() => refetch()}
+            className="press rounded-full bg-primary px-4 py-2 text-[11px] font-black text-primary-foreground"
+          >
+            Tentar novamente
+          </button>
+        }
+      />
     )
   }
 
   if (isLoading) {
     return (
-      <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partidas" onRetry={() => { reset(); refetch() }} />)}>
-        <div className="flex flex-col h-full space-y-4 py-3">
-          <div className="space-y-2 px-1">
-            <div className="h-10 rounded-2xl bg-muted animate-pulse" />
-            <div className="flex gap-2">
-              <div className="h-8 w-20 rounded-xl bg-muted animate-pulse" />
-              <div className="h-8 w-24 rounded-xl bg-muted animate-pulse" />
-              <div className="h-8 w-20 rounded-xl bg-muted animate-pulse" />
-            </div>
+      <ErrorBoundary
+        fallback={(reset) => (
+          <ErrorFallback
+            message="Erro ao carregar partidas"
+            onRetry={() => {
+              reset()
+              refetch()
+            }}
+          />
+        )}
+      >
+        <div className="space-y-4 py-3">
+          <div className="space-y-2">
+            <div className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+            <div className="h-10 animate-pulse rounded-2xl bg-muted" />
+            <div className="h-10 animate-pulse rounded-2xl bg-muted" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-2">
             {Array.from({ length: 6 }).map((_, i) => (
               <MatchCardSkeleton key={i} />
             ))}
@@ -339,414 +357,221 @@ export default function JogosClient({
   }
 
   return (
-    <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partidas" onRetry={() => { reset(); refetch() }} />)}>
-      <div className="flex flex-col h-full space-y-4 pb-12">
-        {/* Top Header Card with Quick Stats & Auto-Refresh */}
-        <div className="bg-card p-4 border-b border-border">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Placares</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {stats.live > 0 ? `${stats.live} ao vivo agora` : "Atualizado em tempo real"}
-              </p>
-            </div>
-
-            {/* Live refresh button & status */}
+    <ErrorBoundary
+      fallback={(reset) => (
+        <ErrorFallback
+          message="Erro ao carregar partidas"
+          onRetry={() => {
+            reset()
+            refetch()
+          }}
+        />
+      )}
+    >
+      <div className="flex flex-col gap-4 pb-6">
+        <PageHeader
+          eyebrow="Agenda do dia"
+          title="Jogos"
+          subtitle={
+            stats.live > 0
+              ? `${stats.live} ${stats.live === 1 ? "partida ao vivo" : "partidas ao vivo"} · ${stats.total} no total`
+              : `${stats.total} partidas · atualização automática`
+          }
+          action={
             <button
               onClick={() => refetch()}
               disabled={isRefetching}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium bg-accent hover:bg-accent/80 transition-all"
-              title="Atualizar agora (tecla R)"
+              className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+              title="Atualizar agora (R)"
+              aria-label="Atualizar partidas"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />
-              <span>Atualizar</span>
+              <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
             </button>
-          </div>
+          }
+        />
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-4 gap-2 mt-4 text-center">
+        {/* Busca */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar time, liga ou estádio"
+            aria-label="Buscar partidas"
+            className="h-10 w-full rounded-2xl border border-border/80 bg-card pl-10 pr-10 text-[12px] font-medium text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
+          />
+          {search && (
             <button
-              onClick={() => setActiveFilter("todos")}
-              className="p-1 rounded-md hover:bg-accent transition-all"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Limpar busca"
             >
-              <p className="text-[10px] text-muted-foreground font-medium uppercase">Total</p>
-              <p className="text-base font-bold">{stats.total}</p>
+              <X className="h-3.5 w-3.5" />
             </button>
-
-            <button
-              onClick={() => setActiveFilter("live")}
-              className="p-1 rounded-md hover:bg-accent transition-all"
-            >
-              <p className="text-[10px] text-red-600 font-bold uppercase">Ao Vivo</p>
-              <p className="text-base font-bold text-red-600">{stats.live}</p>
-            </button>
-
-            <button
-              onClick={() => setActiveFilter("upcoming")}
-              className="p-1 rounded-md hover:bg-accent transition-all"
-            >
-              <p className="text-[10px] text-muted-foreground font-medium uppercase">Agendados</p>
-              <p className="text-base font-bold">{stats.upcoming}</p>
-            </button>
-
-            <button
-              onClick={() => setActiveFilter("pinned")}
-              className="p-1 rounded-md hover:bg-accent transition-all"
-            >
-              <p className="text-[10px] text-amber-600 font-bold uppercase">Fixados</p>
-              <p className="text-base font-bold text-amber-600">{stats.pinned}</p>
-            </button>
-          </div>
+          )}
         </div>
 
-        {/* Filter Controls Box */}
-        <div className="space-y-2.5 sticky top-14 z-30 bg-background/95 backdrop-blur-md py-2 border-b border-border">
-          {/* Search Bar */}
-          <div className="relative flex items-center">
-            <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por time, campeonato, estádio ou horário... (tecle F)"
-              className="w-full bg-muted/60 hover:bg-muted/90 focus:bg-background border border-border focus:border-futebol-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-futebol-500/20 focus:outline-none transition-all"
-            />
-            {search && (
+        {/* Filtro por situação */}
+        <SegmentedControl
+          options={filterOptions}
+          value={activeFilter}
+          onChange={setActiveFilter}
+          ariaLabel="Filtrar partidas por situação"
+        />
+
+        {/* Filtro por liga */}
+        {availableCompetitions.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+            <FilterChip active={!activeCompetition} onClick={() => setActiveCompetition(null)}>
+              Todas as ligas
+            </FilterChip>
+            {availableCompetitions.map((comp) => {
+              const meta = getCompetitionMeta(comp.name)
+              return (
+                <FilterChip
+                  key={comp.id}
+                  active={activeCompetition === comp.name}
+                  onClick={() =>
+                    setActiveCompetition(
+                      activeCompetition === comp.name ? null : comp.name
+                    )
+                  }
+                  title={comp.country ? `${comp.name} · ${comp.country}` : comp.name}
+                >
+                  <span>{meta.flag}</span>
+                  <span>{comp.name}</span>
+                  <span className="tabular opacity-60">{comp.count}</span>
+                </FilterChip>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Resumo + ordenação */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              {processedMatches.length}{" "}
+              {processedMatches.length === 1 ? "partida" : "partidas"}
+            </span>
+            {activeCompetition && (
               <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                aria-label="Limpar busca"
+                onClick={() => setActiveCompetition(null)}
+                className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary"
               >
-                <X className="w-3.5 h-3.5" />
+                {activeCompetition}
+                <X className="h-2.5 w-2.5" />
               </button>
             )}
           </div>
 
-          {/* Status Tabs Carousel */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
-            <button
-              onClick={() => setActiveFilter("todos")}
-              aria-pressed={activeFilter === "todos"}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-                activeFilter === "todos"
-                  ? "bg-futebol-600 text-white border-futebol-600 shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
-              )}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>Todos</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px]",
-                activeFilter === "todos" ? "bg-white/20 text-white" : "bg-muted text-foreground"
-              )}>
-                {stats.total}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilter("live")}
-              aria-pressed={activeFilter === "live"}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-                activeFilter === "live"
-                  ? "bg-red-600 text-white border-red-600 shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
-              )}
-            >
-              <Radio className={cn("w-3.5 h-3.5", stats.live > 0 && "animate-pulse text-red-500")} />
-              <span>Ao Vivo</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
-                activeFilter === "live" ? "bg-white/20 text-white" : "bg-red-500/10 text-red-600 dark:text-red-400"
-              )}>
-                {stats.live}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilter("upcoming")}
-              aria-pressed={activeFilter === "upcoming"}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-                activeFilter === "upcoming"
-                  ? "bg-futebol-600 text-white border-futebol-600 shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
-              )}
-            >
-              <Trophy className="w-3.5 h-3.5" />
-              <span>Agendados</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px]",
-                activeFilter === "upcoming" ? "bg-white/20 text-white" : "bg-muted text-foreground"
-              )}>
-                {stats.upcoming}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilter("finished")}
-              aria-pressed={activeFilter === "finished"}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-                activeFilter === "finished"
-                  ? "bg-futebol-600 text-white border-futebol-600 shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
-              )}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Finalizados</span>
-              <span className={cn(
-                "px-1.5 py-0.2 rounded-full text-[10px]",
-                activeFilter === "finished" ? "bg-white/20 text-white" : "bg-muted text-foreground"
-              )}>
-                {stats.finished}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveFilter("pinned")}
-              aria-pressed={activeFilter === "pinned"}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
-                activeFilter === "pinned"
-                  ? "bg-amber-500 text-white border-amber-500 shadow-sm"
-                  : "bg-card text-muted-foreground border-border hover:bg-muted"
-              )}
-            >
-              <Star className={cn("w-3.5 h-3.5", activeFilter === "pinned" ? "fill-white" : "text-amber-500 fill-amber-500/20")} />
-              <span>Fixados</span>
-              {stats.pinned > 0 && (
-                <span className={cn(
-                  "px-1.5 py-0.2 rounded-full text-[10px] font-bold",
-                  activeFilter === "pinned" ? "bg-white/20 text-white" : "bg-amber-500/10 text-amber-600"
-                )}>
-                  {stats.pinned}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Secondary Filter Row: Competitions & View Mode */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {/* Competition Selector Pills */}
-            <div className="flex items-center gap-1.5 min-w-0">
-              <button
-                onClick={() => setActiveCompetition(null)}
-                className={cn(
-                  "px-2.5 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border flex items-center gap-1",
-                  !activeCompetition
-                    ? "bg-foreground text-background border-foreground"
-                    : "bg-card text-muted-foreground border-border hover:bg-muted"
-                )}
-              >
-                <span>Todas as Ligas</span>
-              </button>
-
-              {availableCompetitions.map((comp) => {
-                const meta = getCompetitionMeta(comp.name)
-                const isSelected = activeCompetition === comp.name
-                return (
-                  <button
-                    key={comp.id}
-                    onClick={() => setActiveCompetition(isSelected ? null : comp.name)}
-                    className={cn(
-                      "px-2.5 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border flex items-center gap-1.5",
-                      isSelected
-                        ? "bg-futebol-600 text-white border-futebol-600 shadow-sm"
-                        : "bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <span>{meta.flag}</span>
-                    <span>{comp.name}</span>
-                    <span className={cn(
-                      "text-[10px] px-1 py-0.2 rounded-full",
-                      isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
-                    )}>
-                      {comp.count}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* View Mode Toggle: Card vs Compact */}
-            <div className="flex items-center gap-0.5 bg-muted rounded-xl p-0.5 flex-shrink-0 border border-border">
-              <button
-                onClick={() => setCompactMode(false)}
-                className={cn(
-                  "p-1.5 rounded-lg transition-all",
-                  !compactMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-                title="Visualização em cards"
-                aria-label="Visualização em cards"
-              >
-                <Grid className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setCompactMode(true)}
-                className={cn(
-                  "p-1.5 rounded-lg transition-all",
-                  compactMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-                title="Visualização em lista compacta"
-                aria-label="Visualização em lista compacta"
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Active Filters Summary line & Reset button */}
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pt-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-foreground">
-                {processedMatches.length} {processedMatches.length === 1 ? "partida" : "partidas"} encontrada(s)
-              </span>
-              {activeCompetition && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-futebol-50 dark:bg-futebol-950/60 text-futebol-700 dark:text-futebol-300 font-medium">
-                  {activeCompetition}
-                  <button
-                    onClick={() => setActiveCompetition(null)}
-                    className="hover:text-red-500"
-                    aria-label={`Remover filtro de ${activeCompetition}`}
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
-            </div>
-
-            <div className="ml-auto flex items-center gap-2">
-              <label htmlFor="games-sort" className="text-[11px]">
-                Ordenar:
-              </label>
-              <select
-                id="games-sort"
-                value={sortBy}
-                onChange={(event) => {
-                  const value = event.target.value
-                  if (value === "time" || value === "status" || value === "competition") {
-                    setSortBy(value)
-                  }
-                }}
-                className="max-w-[142px] rounded-lg border border-border bg-card px-2 py-1.5 text-[11px] font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-futebol-500/30"
-              >
-                <option value="time">Horário</option>
-                <option value="status">Status do jogo</option>
-                <option value="competition">Campeonato</option>
-              </select>
-              {hasActiveFilters && (
-                <button
-                  onClick={handleResetFilters}
-                  className="flex items-center gap-1 text-[11px] text-futebol-600 hover:text-futebol-700 font-semibold transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                  <span>Limpar</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Matches Feed */}
-        {processedMatches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center px-4 rounded-2xl border border-dashed border-border bg-card/50">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Trophy className="w-8 h-8 text-muted-foreground/60" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Nenhuma partida encontrada</h3>
-            <p className="text-xs text-muted-foreground max-w-xs mt-1">
-              {hasActiveFilters
-                ? "Tente ajustar a busca ou limpar os filtros de campeonato e status."
-                : "No momento não há partidas registradas. Volte em breve para acompanhar novos jogos!"}
-            </p>
+          <div className="flex flex-shrink-0 items-center gap-2">
             {hasActiveFilters && (
               <button
                 onClick={handleResetFilters}
-                className="mt-4 px-4 py-2 rounded-xl bg-futebol-600 text-white text-xs font-bold hover:bg-futebol-700 transition-colors shadow-sm"
+                className="text-[10px] font-bold text-primary hover:underline"
               >
-                Limpar todos os filtros
+                Limpar
               </button>
             )}
+            <label htmlFor="games-sort" className="sr-only">
+              Ordenar partidas
+            </label>
+            <select
+              id="games-sort"
+              value={sortBy}
+              onChange={(event) => {
+                const value = event.target.value
+                if (value === "time" || value === "status" || value === "competition") {
+                  setSortBy(value)
+                }
+              }}
+              className="h-7 rounded-full border border-border/80 bg-card px-2 text-[10px] font-bold text-foreground outline-none"
+            >
+              <option value="time">Horário</option>
+              <option value="status">Situação</option>
+              <option value="competition">Liga</option>
+            </select>
           </div>
+        </div>
+
+        {/* Conteúdo */}
+        {processedMatches.length === 0 ? (
+          <EmptyState
+            icon={Trophy}
+            title="Nenhuma partida encontrada"
+            description={
+              hasActiveFilters
+                ? "Ajuste a busca ou limpe os filtros de liga e situação."
+                : "Não há partidas registradas agora. Volte em breve."
+            }
+            action={
+              hasActiveFilters ? (
+                <button
+                  onClick={handleResetFilters}
+                  className="press rounded-full bg-primary px-4 py-2 text-[11px] font-black text-primary-foreground"
+                >
+                  Limpar filtros
+                </button>
+              ) : undefined
+            }
+          />
         ) : (
-          <div className="space-y-6">
-            {/* 1. VIP Pinned Section (if any pinned matches) */}
+          <div className="space-y-5">
             {pinnedSectionMatches.length > 0 && (
-              <section className="cv-auto space-y-2.5">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 flex items-center justify-center text-xs">
-                      ⭐
-                    </span>
-                    <h2 className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                      Partidas Fixadas / Meus Times
-                    </h2>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600">
-                    {pinnedSectionMatches.length} fixado(s)
+              <section className="space-y-2">
+                <div className="flex items-center justify-between px-0.5">
+                  <h2 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-warning">
+                    <Star className="h-3 w-3 fill-current" />
+                    Fixados e favoritos
+                  </h2>
+                  <span className="tabular text-[10px] font-bold text-muted-foreground">
+                    {pinnedSectionMatches.length}
                   </span>
                 </div>
-
-                <div className={cn(
-                  "grid gap-2.5",
-                  compactMode ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
-                )}>
+                <div className="space-y-2">
                   {pinnedSectionMatches.map((match) => (
-                    <MatchCard key={`pinned-${match.id}`} match={match} compact={compactMode} showCompetition />
+                    <MatchCard key={`pinned-${match.id}`} match={match} showCompetition />
                   ))}
                 </div>
               </section>
             )}
 
-            {/* 2. Grouped By Competition */}
             {groupedByCompetition.map((group) => {
               const isCollapsed = collapsedLeagues[group.name] ?? false
 
               return (
-                <section key={group.name} className="cv-auto space-y-2.5">
-                  {/* Competition Header Banner */}
+                <section key={group.name} className="cv-auto space-y-2">
                   <button
                     onClick={() => toggleLeagueCollapse(group.name)}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/80 transition-colors text-left"
+                    className="flex w-full items-center gap-2.5 px-0.5 py-1 text-left"
                     aria-expanded={!isCollapsed}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base flex-shrink-0">{group.flag}</span>
-                      <div className="min-w-0">
-                        <span className="text-xs font-bold text-foreground block truncate">
-                          {group.name}
-                        </span>
-                        {group.region && (
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
-                            {group.region}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-background border border-border text-muted-foreground">
-                        {group.matches.length} {group.matches.length === 1 ? "jogo" : "jogos"}
+                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-sm">
+                      {group.flag}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-black leading-tight text-foreground">
+                        {group.name}
                       </span>
-                      {isCollapsed ? (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
+                      <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {group.region} · {group.matches.length}{" "}
+                        {group.matches.length === 1 ? "jogo" : "jogos"}
+                      </span>
+                    </span>
+                    {isCollapsed ? (
+                      <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                    )}
                   </button>
 
-                  {/* Matches Grid */}
                   {!isCollapsed && (
-                    <div className={cn(
-                      "grid gap-2.5",
-                      compactMode ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
-                    )}>
+                    <div className="space-y-2">
                       {group.matches.map((match) => (
-                        <MatchCard key={match.id} match={match} compact={compactMode} />
+                        <MatchCard key={match.id} match={match} />
                       ))}
                     </div>
                   )}
@@ -756,14 +581,9 @@ export default function JogosClient({
           </div>
         )}
 
-        {/* Footer shortcuts info */}
-        <div className="pt-6 pb-4 text-center border-t border-border/60 text-[11px] text-muted-foreground space-y-1">
-          <p className="font-medium">
-            Atualização automática ativa • Dados em tempo real
-          </p>
-          <p className="text-[10px] text-muted-foreground/80">
-            Dicas: Pressione <kbd className="px-1 py-0.5 bg-muted rounded border text-[9px]">F</kbd> para buscar, <kbd className="px-1 py-0.5 bg-muted rounded border text-[9px]">R</kbd> para atualizar, ou teclas <kbd className="px-1 py-0.5 bg-muted rounded border text-[9px]">1-5</kbd> para alternar abas.
-          </p>
+        <div className="flex items-center justify-center gap-2 pt-2 text-[10px] font-semibold text-muted-foreground">
+          <Radio className={cn("h-3 w-3", stats.live > 0 && "text-live")} />
+          <span>Atualização automática a cada 60 segundos</span>
         </div>
       </div>
     </ErrorBoundary>

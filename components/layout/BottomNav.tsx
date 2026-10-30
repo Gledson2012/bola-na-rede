@@ -5,45 +5,17 @@ import { usePathname } from "next/navigation"
 import { BarChart3, Users, Trophy, Newspaper } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLiveMatches } from "@/lib/queries"
-
-function SoccerBallIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="12 8 8 11 9.5 15.5 14.5 15.5 16 11" fill="currentColor" opacity="0.25" />
-      <polygon points="12 8 8 11 9.5 15.5 14.5 15.5 16 11" />
-      <path d="M12 2v6" />
-      <path d="M12 18v4" />
-      <path d="M4.93 4.93l4.24 4.24" />
-      <path d="M14.83 14.83l4.24 4.24" />
-      <path d="M2 12h6" />
-      <path d="M18 12h4" />
-      <path d="M4.93 19.07l4.24-4.24" />
-      <path d="M14.83 9.17l4.24-4.24" />
-    </svg>
-  )
-}
+import { SoccerBallIcon } from "@/components/icons/soccer-ball"
 
 type NavItem = {
   href: string
   label: string
   icon: React.ElementType
-  showLiveBadge?: boolean
+  live?: boolean
 }
 
 const navItems: NavItem[] = [
-  { href: "/jogos", label: "Jogos", icon: SoccerBallIcon, showLiveBadge: true },
+  { href: "/jogos", label: "Jogos", icon: SoccerBallIcon, live: true },
   { href: "/analise", label: "Análise", icon: BarChart3 },
   { href: "/times", label: "Times", icon: Users },
   { href: "/classificacao", label: "Tabela", icon: Trophy },
@@ -56,32 +28,39 @@ export function BottomNav() {
   const liveCount = liveMatches.length
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
       <nav
         aria-label="Navegação principal"
-        className="max-w-lg mx-auto p-1"
+        className="pointer-events-auto mx-auto w-full max-w-lg px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
-        <div className="flex items-center justify-around gap-1">
+        <div className="flex items-center gap-1 rounded-[1.35rem] border border-border/80 bg-background/90 p-1.5 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl">
           {navItems.map((item) => {
             const isJogos = item.href === "/jogos"
             const isActive = isJogos
-              ? pathname === "/jogos" || pathname === "/" || pathname.startsWith("/jogos")
-              : pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+              ? pathname === "/jogos" || pathname === "/" || pathname.startsWith("/jogos/")
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
             const Icon = item.icon
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "flex flex-col items-center justify-center flex-1 py-3 px-2 text-[10px] font-medium transition-colors",
-                  isActive
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
                 aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "press relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl py-2 text-[9px] font-bold transition-all",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                )}
               >
-                <Icon className={cn("w-5 h-5 mb-1", isActive ? "fill-primary/20" : "")} />
+                <span className="relative">
+                  <Icon className="h-[18px] w-[18px]" />
+                  {item.live && liveCount > 0 && (
+                    <span className="absolute -right-1.5 -top-0.5 flex h-3 min-w-3 items-center justify-center rounded-full bg-live px-0.5 text-[7px] font-black leading-none text-white ring-2 ring-background">
+                      {liveCount > 9 ? "9+" : liveCount}
+                    </span>
+                  )}
+                </span>
                 <span className="leading-none">{item.label}</span>
               </Link>
             )

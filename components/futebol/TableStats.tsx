@@ -34,7 +34,7 @@ export function TableStats({ standings }: TableStatsProps) {
 
   return (
     <section
-      className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      className="grid grid-cols-2 gap-2"
       aria-label="Resumo da classificação"
     >
       <StatCard
@@ -43,7 +43,7 @@ export function TableStats({ standings }: TableStatsProps) {
         value={leader.team.name}
         detail={`${leader.points} pts`}
         logo={leader.team.logo}
-        accent="text-amber-600 dark:text-amber-400"
+        accent="text-warning"
       />
       <StatCard
         icon={<Goal className="h-3.5 w-3.5" />}
@@ -51,7 +51,7 @@ export function TableStats({ standings }: TableStatsProps) {
         value={bestAttack.team.name}
         detail={`${bestAttack.goalsFor} gols`}
         logo={bestAttack.team.logo}
-        accent="text-emerald-600 dark:text-emerald-400"
+        accent="text-success"
       />
       <StatCard
         icon={<Shield className="h-3.5 w-3.5" />}
@@ -66,7 +66,7 @@ export function TableStats({ standings }: TableStatsProps) {
         label="Média de gols"
         value={`${goalsPerMatch} por jogo`}
         detail={`${Math.round(totalGoals)} gols na competição`}
-        accent="text-futebol-600 dark:text-futebol-400"
+        accent="text-primary"
       />
     </section>
   )
@@ -88,7 +88,7 @@ function StatCard({
   accent: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-2.5">
+    <div className="rounded-xl border border-border/80 bg-card p-2.5">
       <p className={cn("flex items-center gap-1 text-[10px] font-semibold", accent)}>
         {icon}
         {label}
