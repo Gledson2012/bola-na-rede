@@ -342,103 +342,59 @@ export default function JogosClient({
     <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar partidas" onRetry={() => { reset(); refetch() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-12">
         {/* Top Header Card with Quick Stats & Auto-Refresh */}
-        <div className="rounded-3xl bg-gradient-to-br from-futebol-950 via-slate-900 to-futebol-900 text-white p-4 sm:p-5 shadow-xl border border-futebol-500/30 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 bg-futebol-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 -mb-10 w-36 h-36 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+        <div className="bg-card p-4 border-b border-border">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-                  <span>Placares & Ligas</span>
-                </h1>
-                {stats.live > 0 ? (
-                  <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black animate-pulse shadow-md shadow-red-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                    {stats.live} AO VIVO
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold text-white/70 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10">
-                    Sem jogos ao vivo
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-emerald-100/80 mt-1 font-medium">
-                Partidas em tempo real, tabelas e inteligência estatística
+              <h1 className="text-lg font-bold tracking-tight">Placares</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {stats.live > 0 ? `${stats.live} ao vivo agora` : "Atualizado em tempo real"}
               </p>
             </div>
 
             {/* Live refresh button & status */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => refetch()}
-                disabled={isRefetching}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 transition-all active:scale-95 text-white",
-                  isRefetching && "opacity-75"
-                )}
-                title="Atualizar agora (tecla R)"
-              >
-                <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />
-                <span>{isRefetching ? "Atualizando..." : "Atualizar"}</span>
-              </button>
-            </div>
+            <button
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium bg-accent hover:bg-accent/80 transition-all"
+              title="Atualizar agora (tecla R)"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />
+              <span>Atualizar</span>
+            </button>
           </div>
 
           {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-white/15 text-center">
+          <div className="grid grid-cols-4 gap-2 mt-4 text-center">
             <button
               onClick={() => setActiveFilter("todos")}
-              aria-pressed={activeFilter === "todos"}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                activeFilter === "todos" ? "bg-white/20 ring-1 ring-white/40" : "hover:bg-white/10"
-              )}
+              className="p-1 rounded-md hover:bg-accent transition-all"
             >
-              <p className="text-[10px] text-white/70 uppercase font-medium tracking-wider">Total</p>
-              <p className="text-base sm:text-lg font-black">{stats.total}</p>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase">Total</p>
+              <p className="text-base font-bold">{stats.total}</p>
             </button>
 
             <button
               onClick={() => setActiveFilter("live")}
-              aria-pressed={activeFilter === "live"}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                activeFilter === "live" ? "bg-red-500/30 ring-1 ring-red-400" : "hover:bg-white/10"
-              )}
+              className="p-1 rounded-md hover:bg-accent transition-all"
             >
-              <p className="text-[10px] text-red-300 uppercase font-bold tracking-wider flex items-center justify-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                Ao Vivo
-              </p>
-              <p className="text-base sm:text-lg font-black text-red-300">{stats.live}</p>
+              <p className="text-[10px] text-red-600 font-bold uppercase">Ao Vivo</p>
+              <p className="text-base font-bold text-red-600">{stats.live}</p>
             </button>
 
             <button
               onClick={() => setActiveFilter("upcoming")}
-              aria-pressed={activeFilter === "upcoming"}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                activeFilter === "upcoming" ? "bg-white/20 ring-1 ring-white/40" : "hover:bg-white/10"
-              )}
+              className="p-1 rounded-md hover:bg-accent transition-all"
             >
-              <p className="text-[10px] text-white/70 uppercase font-medium tracking-wider">Agendados</p>
-              <p className="text-base sm:text-lg font-black">{stats.upcoming}</p>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase">Agendados</p>
+              <p className="text-base font-bold">{stats.upcoming}</p>
             </button>
 
             <button
               onClick={() => setActiveFilter("pinned")}
-              aria-pressed={activeFilter === "pinned"}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                activeFilter === "pinned" ? "bg-amber-400/20 ring-1 ring-amber-400" : "hover:bg-white/10"
-              )}
+              className="p-1 rounded-md hover:bg-accent transition-all"
             >
-              <p className="text-[10px] text-amber-300 uppercase font-bold tracking-wider flex items-center justify-center gap-1">
-                <Star className="w-2.5 h-2.5 fill-amber-300" />
-                Fixados
-              </p>
-              <p className="text-base sm:text-lg font-black text-amber-300">{stats.pinned}</p>
+              <p className="text-[10px] text-amber-600 font-bold uppercase">Fixados</p>
+              <p className="text-base font-bold text-amber-600">{stats.pinned}</p>
             </button>
           </div>
         </div>

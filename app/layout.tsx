@@ -77,14 +77,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className="h-full antialiased" data-scroll-behavior="smooth">
-      <body className="font-sans h-full bg-[#030712] text-slate-100 flex justify-center selection:bg-futebol-500/30 selection:text-futebol-400">
+      <body className="font-sans h-full bg-background text-foreground flex justify-center selection:bg-primary/20 selection:text-primary">
         <Providers>
           <ServiceWorkerRegistration />
-          {/* Mobile-first modern phone frame container */}
-          <div className="w-full max-w-lg min-h-[100dvh] flex flex-col bg-background text-foreground relative shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-x-hidden border-x border-border/40">
+          <div className="w-full max-w-lg min-h-[100dvh] flex flex-col relative overflow-x-hidden">
             <a
               href="#conteudo"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-xl focus:bg-futebol-600 focus:px-3 focus:py-2 focus:text-xs focus:font-bold focus:text-white"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-xs focus:font-bold focus:text-primary-foreground"
             >
               Pular para o conteúdo
             </a>
@@ -93,7 +92,7 @@ export default function RootLayout({
             <main
               id="conteudo"
               tabIndex={-1}
-              className="flex-1 px-3 pb-24 pt-2 safe-area-bottom outline-none"
+              className="flex-1 px-4 pb-24 pt-2 safe-area-bottom outline-none"
             >
               {children}
             </main>

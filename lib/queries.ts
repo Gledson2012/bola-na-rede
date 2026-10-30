@@ -16,8 +16,9 @@ export function useLiveMatches() {
   return useQuery({
     queryKey: ["matches", "live"],
     queryFn: () => api.matchesLive().then((r) => r.map(mapApiMatchToMatch)),
-    refetchInterval: 30_000,
-    staleTime: 10_000,
+    refetchInterval: 15_000, // Ajustado para maior precisão ao vivo
+    staleTime: 5_000,
+    gcTime: 60_000,
   })
 }
 
@@ -27,6 +28,7 @@ export function useTodayMatches() {
     queryFn: () => api.matchesToday().then((r) => r.map(mapApiMatchToMatch)),
     refetchInterval: 60_000,
     staleTime: 30_000,
+    gcTime: 300_000,
   })
 }
 

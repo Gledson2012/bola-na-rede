@@ -56,10 +56,10 @@ export function BottomNav() {
   const liveCount = liveMatches.length
 
   return (
-    <div className="fixed bottom-3 left-0 right-0 z-40 max-w-lg mx-auto px-3 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border">
       <nav
         aria-label="Navegação principal"
-        className="pointer-events-auto rounded-3xl bg-background/85 dark:bg-card/90 backdrop-blur-2xl border border-border/80 shadow-[0_12px_40px_rgba(0,0,0,0.35)] p-1.5 transition-all"
+        className="max-w-lg mx-auto p-1"
       >
         <div className="flex items-center justify-around gap-1">
           {navItems.map((item) => {
@@ -74,26 +74,15 @@ export function BottomNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex flex-col items-center justify-center flex-1 py-2 px-2 rounded-2xl text-[11px] font-semibold transition-all duration-200 active:scale-90",
+                  "flex flex-col items-center justify-center flex-1 py-3 px-2 text-[10px] font-medium transition-colors",
                   isActive
-                    ? "bg-futebol-600 text-white shadow-lg shadow-futebol-600/35 ring-1 ring-futebol-400/30 font-bold"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
-                <div className="relative flex flex-col items-center">
-                  <Icon className={cn("w-4 h-4 mb-0.5 transition-transform", isActive ? "text-white scale-110" : "text-muted-foreground")} />
-
-                  {/* Live pulsating dot if live matches exist */}
-                  {item.showLiveBadge && liveCount > 0 && (
-                    <span className="absolute -top-1 -right-2 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white" />
-                    </span>
-                  )}
-
-                  <span className="leading-none tracking-tight">{item.label}</span>
-                </div>
+                <Icon className={cn("w-5 h-5 mb-1", isActive ? "fill-primary/20" : "")} />
+                <span className="leading-none">{item.label}</span>
               </Link>
             )
           })}

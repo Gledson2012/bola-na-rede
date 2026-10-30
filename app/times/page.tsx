@@ -163,70 +163,24 @@ export default function TimesPage() {
     <ErrorBoundary fallback={(reset) => (<ErrorFallback message="Erro ao carregar times" onRetry={() => { reset(); refetchTeams() }} />)}>
       <div className="flex flex-col h-full space-y-4 pb-12">
         {/* Hero Banner */}
-        <div className="rounded-3xl bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 text-white p-5 shadow-xl border border-futebol-800 relative overflow-hidden">
-          <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+        <div className="rounded-lg bg-card text-card-foreground p-5 border border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-md bg-primary/10 text-primary flex items-center justify-center">
+              <Users className="w-5 h-5" />
+            </div>
             <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-futebol-600/30 text-futebol-400 flex items-center justify-center font-bold">
-                  <Users className="w-4 h-4" />
-                </div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight">Clubes & Times</h1>
-              </div>
-              <p className="text-xs text-white/70 mt-0.5">
-                Navegue pelos clubes das principais ligas do mundo
+              <h1 className="text-lg font-bold text-foreground">Clubes</h1>
+              <p className="text-xs text-muted-foreground">
+                Navegue pelos times das principais ligas
               </p>
             </div>
-
-            <div className="flex items-center gap-1.5 text-xs text-white/80 bg-white/10 px-3 py-1.5 rounded-xl border border-white/10">
-              <span className="font-bold text-white">{activeTeamsPool.length}</span>
-              <span>clubes disponíveis</span>
-            </div>
-          </div>
-
-          {/* Metrics bar */}
-          <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/15 text-center">
-            <button
-              onClick={() => setFilterMode("all")}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                filterMode === "all" ? "bg-white/20 ring-1 ring-white/40" : "hover:bg-white/10"
-              )}
-            >
-              <p className="text-[10px] text-white/70 uppercase font-medium">Exibindo</p>
-              <p className="text-base sm:text-lg font-black">{activeTeamsPool.length}</p>
-            </button>
-
-            <button
-              onClick={() => setFilterMode("favorites")}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                filterMode === "favorites" ? "bg-amber-400/20 ring-1 ring-amber-400" : "hover:bg-white/10"
-              )}
-            >
-              <p className="text-[10px] text-amber-300 uppercase font-bold flex items-center justify-center gap-1">
-                <Star className="w-2.5 h-2.5 fill-amber-300" />
-                Favoritos
-              </p>
-              <p className="text-base sm:text-lg font-black text-amber-300">{favoriteTeamsCount}</p>
-            </button>
-
-            <button
-              onClick={() => setFilterMode("playingToday")}
-              className={cn(
-                "p-1.5 rounded-xl transition-all",
-                filterMode === "playingToday" ? "bg-futebol-500/20 ring-1 ring-futebol-400" : "hover:bg-white/10"
-              )}
-            >
-              <p className="text-[10px] text-futebol-300 uppercase font-medium">Jogam Hoje</p>
-              <p className="text-base sm:text-lg font-black text-futebol-300">{playingTodayCount}</p>
-            </button>
           </div>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="space-y-2.5 sticky top-14 z-30 bg-background/95 backdrop-blur-md py-2 border-b border-border">
+        <div className="space-y-2 sticky top-14 z-30 bg-background/95 backdrop-blur-md py-2 border-b border-border">
           {/* League Selector Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-medium">
             {featuredLeagues.map((l) => {
               const isSelected = selectedLeague === l.id
               return (
@@ -237,14 +191,13 @@ export default function TimesPage() {
                     setSearch("")
                   }}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border active:scale-95",
+                    "px-3 py-1.5 rounded-md transition-colors whitespace-nowrap",
                     isSelected
-                      ? "bg-futebol-600 text-white border-futebol-600 shadow-sm font-bold"
-                      : "bg-card text-muted-foreground border-border hover:bg-muted"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-accent hover:bg-accent/80 text-muted-foreground"
                   )}
                 >
-                  <span>{l.flag}</span>
-                  <span>{l.label}</span>
+                  {l.flag} {l.label}
                 </button>
               )
             })}
@@ -257,136 +210,37 @@ export default function TimesPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar clube pelo nome ou sigla..."
-              className="w-full bg-muted/60 hover:bg-muted/90 focus:bg-background border border-border focus:border-futebol-500 rounded-2xl pl-9 pr-9 py-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-futebol-500/20 focus:outline-none transition-all"
+              placeholder="Buscar clube..."
+              className="w-full bg-background border border-border rounded-md pl-9 pr-9 py-2 text-sm focus:ring-1 focus:ring-primary focus:outline-none transition-all"
             />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-3 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted"
-                aria-label="Limpar busca"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
 
           {/* Filter Status & View Controls */}
-          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setFilterMode("all")}
-                className={cn(
-                  "px-2.5 py-1 rounded-xl transition-all whitespace-nowrap border",
-                  filterMode === "all"
-                    ? "bg-foreground text-background border-foreground font-bold"
-                    : "bg-card text-muted-foreground border-border hover:bg-muted"
-                )}
-              >
-                Todos
-              </button>
-
-              <button
-                onClick={() => setFilterMode("favorites")}
-                className={cn(
-                  "px-2.5 py-1 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
-                  filterMode === "favorites"
-                    ? "bg-amber-500 text-white border-amber-500 font-bold shadow-sm"
-                    : "bg-card text-muted-foreground border-border hover:bg-muted"
-                )}
-              >
-                <Star className={cn("w-3 h-3", filterMode === "favorites" ? "fill-white" : "text-amber-500 fill-amber-500/30")} />
-                <span>Favoritos</span>
-              </button>
-
-              <button
-                onClick={() => setFilterMode("playingToday")}
-                className={cn(
-                  "px-2.5 py-1 rounded-xl transition-all whitespace-nowrap border flex items-center gap-1",
-                  filterMode === "playingToday"
-                    ? "bg-futebol-600 text-white border-futebol-600 font-bold shadow-sm"
-                    : "bg-card text-muted-foreground border-border hover:bg-muted"
-                )}
-              >
-                <Radio className="w-3 h-3" />
-                <span>Jogam Hoje</span>
-              </button>
+          <div className="flex items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <button onClick={() => setFilterMode("all")} className={cn("px-2 py-1 rounded", filterMode === "all" && "bg-accent text-foreground")}>Todos</button>
+              <button onClick={() => setFilterMode("favorites")} className={cn("px-2 py-1 rounded", filterMode === "favorites" && "bg-accent text-foreground")}>Favoritos</button>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="bg-card text-foreground border border-border rounded-xl px-2.5 py-1 text-xs font-medium focus:ring-1 focus:ring-futebol-500"
-                aria-label="Ordenar clubes"
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCompactMode(!compactMode)}
+                className="p-1 rounded hover:bg-accent"
               >
-                <option value="favoritesFirst">Favoritos Primeiro</option>
-                <option value="name">Nome (A - Z)</option>
-                <option value="gamesToday">Jogos Hoje</option>
-              </select>
-
-              <div className="flex items-center gap-0.5 bg-muted rounded-xl p-0.5 border border-border">
-                <button
-                  onClick={() => setCompactMode(false)}
-                  className={cn(
-                    "p-1 rounded-lg transition-all",
-                    !compactMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                  )}
-                  title="Visualização em cards"
-                  aria-label="Visualização em cards"
-                  aria-pressed={!compactMode}
-                >
-                  <Grid className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setCompactMode(true)}
-                  className={cn(
-                    "p-1 rounded-lg transition-all",
-                    compactMode ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                  )}
-                  title="Visualização em lista"
-                  aria-label="Visualização em lista"
-                  aria-pressed={compactMode}
-                >
-                  <List className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                {compactMode ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+              </button>
             </div>
           </div>
         </div>
 
         {/* Teams List */}
         {processedTeams.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center px-4 rounded-2xl border border-dashed border-border bg-card/50">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Users className="w-8 h-8 text-muted-foreground/60" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">Nenhum clube encontrado</h3>
-            <p className="text-xs text-muted-foreground max-w-xs mt-1">
-              {search
-                ? `Nenhum clube corresponde à busca "${search}".`
-                : filterMode === "favorites"
-                ? "Você ainda não possui clubes favoritos salvos."
-                : filterMode === "playingToday"
-                ? "Nenhum clube joga hoje com os dados disponíveis no momento."
-                : selectedLeague
-                ? "Não há classificação disponível para esta liga no momento."
-                : "Nenhum time disponível com os filtros atuais."}
-            </p>
-            <button
-              onClick={() => {
-                setSearch("")
-                setFilterMode("all")
-                setSelectedLeague("")
-              }}
-              className="mt-4 px-4 py-2 rounded-xl bg-futebol-600 text-white text-xs font-bold hover:bg-futebol-700 transition-colors shadow-sm"
-            >
-              Restaurar visualização
-            </button>
+          <div className="py-16 text-center text-sm text-muted-foreground">
+            Nenhum clube encontrado.
           </div>
         ) : (
           <div className={cn(
-            "grid gap-2.5",
+            "grid gap-2",
             compactMode ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"
           )}>
             {processedTeams.map((team) => (

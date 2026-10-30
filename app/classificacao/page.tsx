@@ -111,67 +111,35 @@ function ClassificacaoContent() {
   return (
     <div className="flex flex-col h-full space-y-4 pb-12">
       {/* League Hero Banner */}
-      <div
-        className="rounded-3xl bg-gradient-to-br from-slate-900 via-futebol-950 to-slate-900 text-white p-5 shadow-xl border border-futebol-800 relative overflow-hidden"
-      >
-        <div
-          className="absolute top-0 right-0 w-64 h-64 opacity-20 blur-3xl pointer-events-none rounded-full"
-          style={{ backgroundColor: compMeta.color || "#0ea5e9" }}
-        />
-
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+      <div className="rounded-lg bg-card text-card-foreground p-5 border border-border">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl">{compMeta.flag}</span>
           <div>
-            <div className="flex items-center gap-2.5">
-              <span className="text-3xl flex-shrink-0 drop-shadow">{compMeta.flag}</span>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none">
-                  {compMeta.name}
-                </h1>
-                <p className="text-xs text-white/70 mt-1">
-                  {compMeta.country} • {compMeta.continent}
-                </p>
-              </div>
-            </div>
+            <h1 className="text-lg font-bold tracking-tight text-foreground leading-none">
+              {compMeta.name}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              {compMeta.country} • {compMeta.continent}
+            </p>
           </div>
-
-          <button
-            onClick={handleRefresh}
-            disabled={isRefetching}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/15 hover:bg-white/25 border border-white/20 transition-all active:scale-95 text-white",
-              isRefetching && "opacity-75"
-            )}
-            title="Atualizar tabela agora"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", isRefetching && "animate-spin")} />
-            <span>{isRefetching ? "Atualizando..." : "Atualizar"}</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/15 text-xs text-white/80">
-          <Trophy className="w-3.5 h-3.5 text-yellow-400" />
-          <span>Tabela Oficial • <strong>{standings.length} clubes na disputa</strong></span>
         </div>
       </div>
 
       {/* Region Selector Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-semibold">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs font-medium">
         {REGION_TABS.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setSelectedRegion(tab.value)}
             aria-pressed={selectedRegion === tab.value}
             className={cn(
-              "flex items-center gap-1 px-3 py-1.5 rounded-xl transition-all whitespace-nowrap border",
+              "px-3 py-1.5 rounded-md transition-colors whitespace-nowrap",
               selectedRegion === tab.value
-                ? "bg-foreground text-background border-foreground font-bold shadow-sm"
-                : "bg-card text-muted-foreground border-border hover:bg-muted"
+                ? "bg-primary text-primary-foreground"
+                : "bg-accent hover:bg-accent/80 text-muted-foreground"
             )}
           >
-            <span>{tab.flag}</span>
-            <span>
-              {tab.label} ({regionCountByFilter[tab.value]})
-            </span>
+            {tab.label}
           </button>
         ))}
       </div>
@@ -214,8 +182,8 @@ function ClassificacaoContent() {
               type="search"
               value={tableSearch}
               onChange={(e) => setTableSearch(e.target.value)}
-              placeholder={`Filtrar clube em ${compMeta.shortName}...`}
-              className="w-full bg-muted/60 hover:bg-muted/90 focus:bg-background border border-border focus:border-futebol-500 rounded-xl pl-8 pr-8 py-1.5 text-xs focus:ring-1 focus:ring-futebol-500 focus:outline-none transition-all"
+              placeholder="Filtrar clube..."
+              className="w-full bg-background border border-border rounded-md pl-9 pr-3 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:outline-none transition-all"
             />
             {tableSearch && (
               <button
@@ -231,11 +199,11 @@ function ClassificacaoContent() {
 
       {/* Standings Table Feed */}
       {error && standings.length === 0 ? (
-        <div className="p-4 rounded-2xl border border-destructive/30 bg-destructive/5 text-center text-xs text-destructive space-y-2">
+        <div className="p-4 rounded-md border border-destructive/30 bg-destructive/5 text-center text-xs text-destructive space-y-2">
           <p>Erro ao carregar classificação de {compMeta.name}.</p>
           <button
             onClick={() => refetchTable()}
-            className="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground font-semibold"
+            className="px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground font-semibold"
           >
             Tentar Novamente
           </button>
@@ -249,13 +217,11 @@ function ClassificacaoContent() {
           filterText={tableSearch}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 text-center px-4 rounded-2xl border border-dashed border-border bg-card/50">
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-            <Trophy className="w-8 h-8 text-muted-foreground/60" />
-          </div>
-          <h3 className="text-base font-bold text-foreground">Tabela não disponível</h3>
+        <div className="flex flex-col items-center justify-center py-16 text-center px-4 rounded-md border border-border bg-card">
+          <Trophy className="w-8 h-8 text-muted-foreground/60 mb-3" />
+          <h3 className="text-sm font-bold text-foreground">Tabela não disponível</h3>
           <p className="text-xs text-muted-foreground max-w-xs mt-1">
-            A classificação desta competição ainda não foi iniciada ou o torneio segue em formato eliminatório direto.
+            A classificação desta competição não está disponível no momento.
           </p>
         </div>
       )}

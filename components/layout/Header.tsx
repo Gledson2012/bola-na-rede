@@ -93,52 +93,36 @@ export function Header() {
       <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-2xl border-b border-border/60">
         <div className="flex items-center justify-between px-3.5 py-2.5 safe-area-top">
           {/* Logo & App title */}
-          <Link href="/jogos" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-futebol-700 via-futebol-600 to-futebol-400 flex items-center justify-center shadow-md shadow-futebol-600/30 ring-1 ring-futebol-400/30 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-base">⚽</span>
+          <Link href="/jogos" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-black">
+              ⚽
             </div>
             <div>
-              <span className="font-black text-base tracking-tight text-foreground block leading-none">
-                Bola na <span className="text-futebol-500">Rede</span>
+              <span className="font-bold text-sm tracking-tight text-foreground block leading-none">
+                Bola na Rede
               </span>
-              <span className="text-[10px] text-muted-foreground font-semibold tracking-tight flex items-center gap-1 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-futebol-500 animate-pulse" />
-                {liveCount > 0 ? `${liveCount} ao vivo agora` : "Central do Futebol"}
+              <span className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                {liveCount > 0 ? `${liveCount} ao vivo` : "Placares"}
               </span>
             </div>
           </Link>
 
           {/* Header Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {/* Quick Leagues Drawer Trigger */}
             <button
               onClick={() => setLeaguesOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/80 hover:bg-muted text-xs font-bold text-foreground border border-border/80 transition-all active:scale-95"
-              title="Ver todos os campeonatos e ligas"
+              className="px-3 py-1.5 rounded-md hover:bg-accent text-xs font-medium text-foreground transition-colors"
+              title="Ver ligas"
             >
-              <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Ligas</span>
-              <span className="sm:hidden">Ligas</span>
+              Ligas
             </button>
-
-            {/* Live Indicator */}
-            {liveCount > 0 && (
-              <Link
-                href="/jogos"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-xs font-black animate-pulse"
-                title="Ver partidas ao vivo"
-              >
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                <span>{liveCount}</span>
-              </Link>
-            )}
 
             {/* Search shortcut */}
             <button
               onClick={handleSearchClick}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl border border-transparent hover:border-border transition-colors"
-              aria-label="Buscar partidas"
-              title="Buscar (tecla F)"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+              aria-label="Buscar"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -158,24 +142,15 @@ export function Header() {
           <div
             ref={sheetRef}
             tabIndex={-1}
-            className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-background border border-border p-5 space-y-4 shadow-2xl animate-in slide-in-from-bottom-5 duration-200 outline-none"
+            className="w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-lg bg-background border border-border p-4 space-y-4 shadow-sm outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Sheet Header */}
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-yellow-500/15 text-yellow-600 flex items-center justify-center">
-                  <Trophy className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 id="leagues-sheet-title" className="text-sm font-bold text-foreground">Todos os Campeonatos & Ligas</h3>
-                  <p className="text-[11px] text-muted-foreground">14 ligas mundiais disponíveis com tabela e classificação</p>
-                </div>
-              </div>
-
+              <h3 id="leagues-sheet-title" className="text-sm font-bold text-foreground">Campeonatos</h3>
               <button
                 onClick={() => setLeaguesOpen(false)}
-                className="p-2 rounded-xl border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="p-1 rounded-md text-muted-foreground hover:bg-accent"
                 aria-label="Fechar"
               >
                 <X className="w-4 h-4" />
@@ -183,39 +158,19 @@ export function Header() {
             </div>
 
             {/* All 14 Leagues List */}
-            <div className="space-y-1.5 divide-y divide-border/50">
+            <div className="space-y-1">
               {ALL_COMPETITIONS.map((c) => {
-                const liveComp = competitions.find((lc) => lc.id === c.id)
-                const hasMatches = (liveComp?.totalMatches ?? 0) > 0
-
                 return (
                   <button
                     key={c.id}
                     onClick={() => handleSelectLeague(c.id)}
-                    className="w-full py-2.5 px-3 flex items-center justify-between rounded-xl hover:bg-muted/60 transition-colors text-left group"
+                    className="w-full py-2 px-2 flex items-center justify-between rounded-md hover:bg-accent transition-colors text-left"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl flex-shrink-0">{c.flag}</span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-foreground group-hover:text-futebol-600 transition-colors">
-                            {c.name}
-                          </span>
-                          {hasMatches && (
-                            <span className="px-1.5 py-0.2 rounded-md bg-futebol-50 dark:bg-futebol-950/60 text-futebol-600 text-[10px] font-bold">
-                              {liveComp?.totalMatches} jogos hoje
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">
-                          {c.country} • {c.continent}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-futebol-600 font-semibold">
-                      <span>Ver Tabela</span>
-                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{c.flag}</span>
+                      <span className="text-xs font-medium text-foreground">
+                        {c.name}
+                      </span>
                     </div>
                   </button>
                 )

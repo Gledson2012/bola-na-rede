@@ -70,14 +70,13 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
           {/* Status / Time Column */}
           <div className="w-16 flex-shrink-0 flex flex-col items-center justify-center text-center">
             {isLive ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 dark:text-red-400 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              <span className="text-[11px] font-bold text-primary animate-pulse">
                 {match.minute ? `${match.minute}'` : "AO VIVO"}
               </span>
             ) : isFinished ? (
-              <span className="text-[11px] font-medium text-muted-foreground uppercase">Fim</span>
+              <span className="text-[11px] text-muted-foreground uppercase">Fim</span>
             ) : (
-              <span className="text-xs font-bold text-foreground tracking-tight">{matchTime}</span>
+              <span className="text-xs font-bold tracking-tight">{matchTime}</span>
             )}
             {showCompetition && match.competition && (
               <span className="text-[9px] text-muted-foreground truncate max-w-[60px]">
@@ -87,21 +86,17 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
           </div>
 
           {/* Teams Column */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+          <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <TeamLogo src={match.homeTeam.logo} name={match.homeTeam.name} size={18} />
-                <span className={cn(
-                  "text-xs truncate",
-                  homeWinning ? "font-bold text-foreground" : "font-normal text-foreground/90"
-                )}>
+                <TeamLogo src={match.homeTeam.logo} name={match.homeTeam.name} size={16} />
+                <span className="text-xs truncate text-foreground/90">
                   {match.homeTeam.name}
                 </span>
               </div>
               <span className={cn(
-                "text-xs font-bold px-1 tabular-nums",
-                isLive && "text-red-600 dark:text-red-400",
-                homeWinning ? "text-foreground" : "text-muted-foreground"
+                "text-xs font-semibold",
+                isLive ? "text-primary" : "text-foreground"
               )}>
                 {hasScore ? match.homeScore : "-"}
               </span>
@@ -109,18 +104,14 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <TeamLogo src={match.awayTeam.logo} name={match.awayTeam.name} size={18} />
-                <span className={cn(
-                  "text-xs truncate",
-                  awayWinning ? "font-bold text-foreground" : "font-normal text-foreground/90"
-                )}>
+                <TeamLogo src={match.awayTeam.logo} name={match.awayTeam.name} size={16} />
+                <span className="text-xs truncate text-foreground/90">
                   {match.awayTeam.name}
                 </span>
               </div>
               <span className={cn(
-                "text-xs font-bold px-1 tabular-nums",
-                isLive && "text-red-600 dark:text-red-400",
-                awayWinning ? "text-foreground" : "text-muted-foreground"
+                "text-xs font-semibold",
+                isLive ? "text-primary" : "text-foreground"
               )}>
                 {hasScore ? match.awayScore : "-"}
               </span>
@@ -154,142 +145,83 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
     <div className="relative group">
       <Link
         href={`/jogos/${match.id}`}
-        className={cn(
-          "block relative overflow-hidden rounded-2xl border transition-all duration-200 bg-card p-4 shadow-sm",
-          isLive
-            ? "border-red-500/50 bg-gradient-to-b from-red-500/[0.07] via-card to-card shadow-lg shadow-red-500/10 ring-1 ring-red-500/30"
-            : isPinned
-            ? "border-amber-400/50 bg-gradient-to-b from-amber-400/[0.06] via-card to-card shadow-md shadow-amber-400/10 ring-1 ring-amber-400/30"
-            : "border-border hover:shadow-xl hover:border-futebol-500/40 hover:-translate-y-0.5"
-        )}
+        className="block rounded-lg border border-border p-4 hover:border-primary transition-colors bg-card"
       >
-        {/* Top bar inside card: Competition or Live Tag + Action Buttons */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="flex items-center gap-1.5 min-w-0">
+        {/* Top bar inside card */}
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2">
             {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+              <span className="text-[10px] font-bold text-primary uppercase animate-pulse">
                 AO VIVO {match.minute ? `• ${match.minute}'` : ""}
               </span>
             ) : isFinished ? (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-bold uppercase tracking-wider border border-border/60">
-                <Check className="w-3 h-3 text-emerald-500" />
+              <span className="text-[10px] text-muted-foreground font-medium uppercase">
                 Encerrado
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-futebol-500/10 text-futebol-600 dark:text-futebol-400 text-[10px] font-bold uppercase tracking-wider border border-futebol-500/20">
-                <Clock className="w-3 h-3" />
-                Agendado • {matchTime}
-              </span>
-            )}
-
-            {match.competition && (
-              <span className="text-[11px] text-muted-foreground font-semibold truncate max-w-[130px] sm:max-w-[200px]">
-                {match.competition}
+              <span className="text-[10px] text-muted-foreground font-medium uppercase">
+                {matchTime}
               </span>
             )}
           </div>
-
-          <div className="flex items-center gap-1">
-            {isUpcoming && (
-              <button
-                onClick={handleReminder}
-                className={cn(
-                  "p-1.5 rounded-lg transition-colors",
-                  isReminded
-                    ? "text-futebol-500 bg-futebol-500/10 border border-futebol-500/30"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-                title={isReminded ? "Lembrete ativo" : "Definir lembrete"}
-                aria-label="Definir lembrete de partida"
-              >
-                <Bell className={cn("w-3.5 h-3.5", isReminded && "fill-futebol-500")} />
-              </button>
-            )}
-
-            <button
+          <button
               onClick={handlePin}
               className={cn(
                 "p-1.5 rounded-lg transition-colors",
                 isPinned || isTeamFavorite
-                  ? "text-amber-500 bg-amber-500/10 border border-amber-500/30"
-                  : "text-muted-foreground hover:text-amber-500 hover:bg-muted"
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               )}
-              title={isPinned ? "Partida fixada" : "Fixar partida"}
-              aria-label="Fixar partida"
             >
-              <Star className={cn("w-3.5 h-3.5", (isPinned || isTeamFavorite) && "fill-amber-400")} />
+              <Star className={cn("w-4 h-4", (isPinned || isTeamFavorite) && "fill-primary")} />
             </button>
-          </div>
         </div>
 
         {/* Center Scoreboard Grid */}
         <div className="grid grid-cols-7 items-center gap-2 my-2">
           {/* Home Team (3 cols) */}
-          <div className="col-span-3 flex items-center justify-end gap-2.5 min-w-0 text-right">
-            <div className="min-w-0">
-              <p className={cn(
-                "text-xs sm:text-sm font-semibold truncate leading-tight",
-                homeWinning ? "text-foreground font-bold" : "text-foreground/90"
-              )}>
-                {match.homeTeam.name}
-              </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                {match.homeTeam.shortName}
-              </p>
-            </div>
+          <div className="col-span-3 flex items-center justify-end gap-2 min-w-0 text-right">
+            <span className="text-xs font-medium truncate">
+              {match.homeTeam.name}
+            </span>
             <TeamLogo
               src={match.homeTeam.logo}
               name={match.homeTeam.name}
-              size={36}
+              size={24}
             />
           </div>
 
           {/* Center Column: Score or Kickoff Time (1 col) */}
           <div className="col-span-1 flex flex-col items-center justify-center">
             {hasScore ? (
-              <div className="flex items-center justify-center gap-1.5">
+              <div className="flex items-center justify-center gap-1 font-bold text-sm">
                 <span className={cn(
-                  "text-lg sm:text-xl font-black tabular-nums tracking-tight",
-                  isLive ? "text-red-600 dark:text-red-400 scale-105" : "text-foreground"
+                  isLive ? "text-primary" : "text-foreground"
                 )}>
                   {match.homeScore}
                 </span>
-                <span className="text-muted-foreground font-light text-xs">:</span>
+                <span className="text-muted-foreground font-light">:</span>
                 <span className={cn(
-                  "text-lg sm:text-xl font-black tabular-nums tracking-tight",
-                  isLive ? "text-red-600 dark:text-red-400 scale-105" : "text-foreground"
+                  isLive ? "text-primary" : "text-foreground"
                 )}>
                   {match.awayScore}
                 </span>
               </div>
             ) : (
-              <div className="flex flex-col items-center">
-                <span className="text-sm sm:text-base font-extrabold text-foreground tracking-tight px-2 py-0.5 rounded-lg bg-muted/60">
-                  {matchTime}
-                </span>
-              </div>
+              <span className="text-xs font-bold text-muted-foreground">vs</span>
             )}
           </div>
 
           {/* Away Team (3 cols) */}
-          <div className="col-span-3 flex items-center justify-start gap-2.5 min-w-0 text-left">
+          <div className="col-span-3 flex items-center justify-start gap-2 min-w-0 text-left">
             <TeamLogo
               src={match.awayTeam.logo}
               name={match.awayTeam.name}
-              size={36}
+              size={24}
             />
-            <div className="min-w-0">
-              <p className={cn(
-                "text-xs sm:text-sm font-semibold truncate leading-tight",
-                awayWinning ? "text-foreground font-bold" : "text-foreground/90"
-              )}>
-                {match.awayTeam.name}
-              </p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                {match.awayTeam.shortName}
-              </p>
-            </div>
+            <span className="text-xs font-medium truncate">
+              {match.awayTeam.name}
+            </span>
           </div>
         </div>
 
