@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import { AlertTriangle, LoaderCircle, RefreshCw } from "lucide-react"
 import { cn, percent } from "@/lib/utils"
+import { triggerHaptic } from "@/lib/haptics"
+import { ImpactStyle } from "@capacitor/haptics"
 import { fetchWithTimeout } from "@/lib/api"
 import type { BacktestResponse } from "@/lib/prediction"
 

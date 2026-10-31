@@ -1,7 +1,7 @@
 "use client"
 
 import { Goal, Shield, Sparkles, Trophy } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, formatOdd } from "@/lib/utils"
 import type { Standing } from "@/types"
 import { TeamLogo } from "@/components/futebol/TeamLogo"
 
@@ -30,7 +30,7 @@ export function TableStats({ standings }: TableStatsProps) {
   const totalGoals = active.reduce((sum, row) => sum + row.goalsFor, 0)
   const totalMatches = active.reduce((sum, row) => sum + row.played, 0) / 2
   const goalsPerMatch =
-    totalMatches > 0 ? (totalGoals / totalMatches).toFixed(2).replace(".", ",") : "—"
+    totalMatches > 0 ? formatOdd(totalGoals / totalMatches) : "—"
 
   return (
     <section
