@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { cn } from "@/lib/utils"
+import { cn, formatOdd } from "@/lib/utils"
 import type { Standing } from "@/types"
 import { Star, ChevronRight } from "lucide-react"
 import { useFavorites } from "@/lib/queries"
@@ -104,7 +104,7 @@ export function LeagueTable({
               const zone = getZoneForPosition(zones, position)
               const style = zone ? ZONE_STYLES[zone.color as ZoneColor] : NEUTRAL_ZONE
               const pointsPerGame =
-                row.played > 0 ? (row.points / row.played).toFixed(2).replace(".", ",") : "—"
+                row.played > 0 ? formatOdd(row.points / row.played) : "—"
 
               return (
                 <tr

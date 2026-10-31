@@ -57,6 +57,11 @@ export function percent(value: number): string {
   return `${(value * 100).toFixed(1).replace(".", ",")}%`
 }
 
+/** Formata uma odd (ex: 1.50) para o padrão brasileiro (ex: "1,50"). */
+export function formatOdd(value: number): string {
+  return value.toFixed(2).replace(".", ",")
+}
+
 /**
  * Copia texto para a área de transferência.
  *

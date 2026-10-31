@@ -2,13 +2,9 @@
 
 import Link from "next/link"
 import { ChevronRight } from "lucide-react"
-import { percent } from "@/lib/utils"
+import { formatOdd, percent } from "@/lib/utils"
 import type { MatchAnalysis } from "@/lib/prediction"
 import { TeamLogo } from "@/components/futebol/TeamLogo"
-
-function odd(value: number): string {
-  return value > 0.001 ? (1 / value).toFixed(2).replace(".", ",") : "—"
-}
 
 /**
  * Destaques: as partidas com a estimativa mais forte do modelo.
@@ -94,7 +90,7 @@ export function AnalysisHighlights({ matches }: { matches: MatchAnalysis[] }) {
                   {best.label} {percent(best.value)}
                 </p>
                 <p className="text-[10px] font-semibold tabular-nums text-muted-foreground">
-                  odd justa {odd(best.value)}
+                  odd justa {best.value > 0.001 ? formatOdd(1 / best.value) : "—"}
                 </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />

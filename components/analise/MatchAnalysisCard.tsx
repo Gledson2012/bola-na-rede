@@ -1,13 +1,14 @@
 "use client"
 
 import { Activity, AlertTriangle, Clock, TrendingDown, TrendingUp } from "lucide-react"
-import { cn, percent } from "@/lib/utils"
+import { cn, formatOdd, percent } from "@/lib/utils"
 import type { MatchAnalysis } from "@/lib/prediction"
 import { TeamLogo } from "@/components/futebol/TeamLogo"
+import { RadarChart } from "@/components/ui/radar-chart"
 
 function odd(value: number | null): string {
   if (value === null || !Number.isFinite(value) || value <= 1) return "—"
-  return value.toFixed(2).replace(".", ",")
+  return formatOdd(value)
 }
 
 const CONFIDENCE_STYLES: Record<
@@ -79,30 +80,25 @@ function OutcomeTile({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border p-2.5 text-center transition-all duration-200",
+        "relative flex flex-col items-center justify-center rounded-xl border p-2 text-center transition-all duration-200",
         isFavorite
-          ? "border-primary/40 bg-primary/[0.06] shadow-sm ring-1 ring-primary/20"
-          : "border-border/60 bg-muted/40 hover:bg-muted/70"
+          ? "border-primary/40 bg-primary/[0.08] shadow-sm ring-1 ring-primary/10"
+          : "border-border/40 bg-muted/20"
       )}
     >
-      {isFavorite && (
-        <span
-          className={cn("absolute inset-x-0 top-0 h-1", accent)}
-          aria-hidden="true"
-        />
-      )}
-      <p className="truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
+      <div className="flex w-full items-center justify-between gap-1 text-[9px] font-bold uppercase text-muted-foreground">
+        <span>{label}</span>
+        {isFavorite && <span className="text-[10px]">🔥</span>}
+      </div>
       <p
         className={cn(
-          "mt-1 text-base font-black tabular-nums tracking-tight",
+          "mt-1 text-sm font-black tabular-nums tracking-tight",
           isFavorite ? "text-primary" : "text-foreground"
         )}
       >
         {percent(probability)}
       </p>
-      <p className="mt-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+      <p className="text-[9px] font-medium text-muted-foreground">
         odd {odd(fairOdd)}
       </p>
     </div>
@@ -262,7 +258,7 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
               {analysis.live.homeScore}–{analysis.live.awayScore}
             </span>
           ) : (
-            <span className="text-xs font-bold text-muted-foreground">x</span>
+            <RadarChart home={probabilities.home} draw={probabilities.draw} away={probabilities.away} className="w-10 h-10 opacity-80" />
           )}
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">

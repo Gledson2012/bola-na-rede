@@ -4,7 +4,9 @@ import { useMemo, useState } from "react"
 import { AlertTriangle, RefreshCw, Search } from "lucide-react"
 import { useAnalysis } from "@/lib/queries"
 import type { MatchAnalysis } from "@/lib/prediction"
-import { cn, percent } from "@/lib/utils"
+import { cn, formatOdd, percent } from "@/lib/utils"
+import { triggerHaptic } from "@/lib/haptics"
+import { ImpactStyle } from "@capacitor/haptics"
 import { LiveAlertsControl } from "@/components/live/LiveAlertsControl"
 import { MatchAnalysisCard } from "@/components/analise/MatchAnalysisCard"
 import { BacktestPanel } from "@/components/analise/BacktestPanel"
@@ -17,7 +19,8 @@ type SortOption = "probabilidade" | "confianca" | "horario" | "campeonato"
 
 function bestProbability(analysis: MatchAnalysis): number {
   const probabilities = analysis.live?.probabilities ?? analysis.probabilities
-  return Math.max(probabilities.home, probabilities.draw, probabilities.away)
+  if (!probabilities) return 0
+  return Math.max(probabilities.home ?? 0, probabilities.draw ?? 0, probabilities.away ?? 0)
 }
 
 export default function AnalisePage() {
@@ -72,26 +75,26 @@ export default function AnalisePage() {
     })
   }, [data?.matches, filter, search, sortBy])
 
-  const summary = data?.summary ?? {
+  const summary = useMemo(() => data?.summary ?? {
     total: 0,
     analyzed: 0,
     upcoming: 0,
     live: 0,
     liveAnalyzed: 0,
     insufficient: 0,
-  }
+  }, [data?.summary])
 
-  const filterOptions: Array<{ value: MatchFilter; label: string; count: number }> = [
-    { value: "todos", label: "Todas", count: summary.total },
-    { value: "upcoming", label: "Próximas", count: summary.upcoming },
-    { value: "live", label: "Ao vivo", count: summary.live },
+  const filterOptions = useMemo(() => [
+    { value: "todos" as MatchFilter, label: "Todas", count: summary.total },
+    { value: "upcoming" as MatchFilter, label: "Próximas", count: summary.upcoming },
+    { value: "live" as MatchFilter, label: "Ao vivo", count: summary.live },
     {
-      value: "finished",
+      value: "finished" as MatchFilter,
       label: "Encerradas",
       count: data?.matches.filter((match) => match.status === "finished").length ?? 0,
     },
-    { value: "insufficient", label: "Sem dados", count: summary.insufficient },
-  ]
+    { value: "insufficient" as MatchFilter, label: "Sem dados", count: summary.insufficient },
+  ], [data?.matches, summary])
 
   return (
     <div className="space-y-4">
@@ -106,7 +109,10 @@ export default function AnalisePage() {
         action={
           <button
             type="button"
-            onClick={() => void refetch()}
+            onClick={() => {
+              void triggerHaptic(ImpactStyle.Light)
+              void refetch()
+            }}
             disabled={isRefetching}
             className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
             title="Atualizar análise"
@@ -191,7 +197,7 @@ export default function AnalisePage() {
                 {percent(data.slip.combinedProbability)}
               </span>
               <span className="tabular text-[9px] font-bold text-muted-foreground">
-                odd {data.slip.combinedFairOdd.toFixed(2).replace(".", ",")}
+                odd {formatOdd(data.slip.combinedFairOdd)}
               </span>
             </div>
           </div>
@@ -214,7 +220,7 @@ export default function AnalisePage() {
                     {percent(pick.probability)}
                   </span>
                   <span className="text-[9px] font-bold text-muted-foreground">
-                    odd {pick.fairOdd.toFixed(2).replace(".", ",")}
+                    odd {formatOdd(pick.fairOdd)}
                   </span>
                 </span>
               </li>
@@ -255,8 +261,8 @@ export default function AnalisePage() {
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Buscar time ou campeonato"
-            className="h-10 w-full rounded-2xl border border-border/80 bg-card pl-10 pr-3 text-[12px] font-medium outline-none placeholder:text-muted-foreground/70 focus:border-primary/50"
+            placeholder="Filtrar por time ou liga..."
+            className="h-10 w-full rounded-2xl border border-border/80 bg-card pl-10 pr-3 text-sm font-medium outline-none placeholder:text-muted-foreground/70 focus:border-primary/50 transition-colors"
             aria-label="Buscar time ou campeonato"
           />
         </label>
@@ -277,7 +283,7 @@ export default function AnalisePage() {
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, index) => (
               <div
-                key={index}
+                key={`skeleton-${index}`}
                 className="h-44 animate-pulse rounded-2xl border border-border bg-card"
               />
             ))}

@@ -14,6 +14,7 @@ export const maxDuration = 60
  * correspondência é feita no servidor e devolvida junto com cada matéria.
  */
 export async function GET() {
+  const start = performance.now()
   try {
     const [rawNews, rawMatches] = await Promise.all([
       getUpstreamJson<ApiNews[]>("/news", { revalidate: 300 }),
@@ -26,6 +27,9 @@ export async function GET() {
     const matches = rawMatches.map(mapApiMatchToMatch)
     const linked = linkNewsToMatches(news, matches)
 
+    const duration = Math.round(performance.now() - start)
+    console.log(`[noticias] Request took ${duration}ms`)
+
     return NextResponse.json(
       {
         generatedAt: new Date().toISOString(),
@@ -35,11 +39,13 @@ export async function GET() {
       {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+          "X-Response-Time": `${duration}ms`,
         },
       }
     )
   } catch (error) {
-    console.error("[noticias] falha ao carregar as notícias:", error)
+    const duration = Math.round(performance.now() - start)
+    console.error(`[noticias] Falha após ${duration}ms:`, error)
     return NextResponse.json(
       { error: "Não foi possível carregar as notícias agora. Tente novamente." },
       { status: 502 }
