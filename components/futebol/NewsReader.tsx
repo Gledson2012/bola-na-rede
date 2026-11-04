@@ -101,10 +101,10 @@ export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
         onClick={(event) => event.stopPropagation()}
       >
         {/* Imagem */}
-        {news.image ? (
+        {imageSrc ? (
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted">
             <Image
-              src={news.image}
+              src={imageSrc}
               alt=""
               fill
               className="object-cover"

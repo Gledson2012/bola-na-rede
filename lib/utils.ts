@@ -58,7 +58,8 @@ export function percent(value: number): string {
 }
 
 /** Formata uma odd (ex: 1.50) para o padrão brasileiro (ex: "1,50"). */
-export function formatOdd(value: number): string {
+export function formatOdd(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—"
   return value.toFixed(2).replace(".", ",")
 }
 

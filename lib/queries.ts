@@ -47,7 +47,7 @@ export function useGlobalMatches(initialMatches?: Match[]) {
     refetchInterval: 60_000,
     staleTime: 30_000,
     ...(initialMatches && initialMatches.length > 0
-      ? { initialData: initialMatches, initialDataUpdatedAt: () => Date.now() }
+      ? { initialData: initialMatches, initialDataUpdatedAt: 0 }
       : {}),
   })
 }
@@ -63,7 +63,7 @@ export function useMatch(id: string, initialDetail?: MatchDetail) {
     refetchInterval: (query) => query.state.data?.status === "live" ? 15_000 : false,
     staleTime: 10_000,
     ...(initialDetail
-      ? { initialData: initialDetail, initialDataUpdatedAt: () => Date.now() }
+      ? { initialData: initialDetail, initialDataUpdatedAt: 0 }
       : {}),
   })
 }
@@ -210,7 +210,7 @@ export function useNews(initialNews?: News[]) {
     queryFn: () => api.news().then((r) => r.map(mapApiNewsToNews)),
     staleTime: 5 * 60_000,
     ...(initialNews && initialNews.length > 0
-      ? { initialData: initialNews, initialDataUpdatedAt: () => Date.now() }
+      ? { initialData: initialNews, initialDataUpdatedAt: 0 }
       : {}),
   })
 }

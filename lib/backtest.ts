@@ -118,7 +118,7 @@ export function runRollingBacktest(
           (total, { match: previous }) =>
             total + (previous.homeScore ?? 0) + (previous.awayScore ?? 0),
           0
-        ) / outcomeCount
+        ) / (outcomeCount * 2)
       const poissonBaseline = leagueBaselineProbabilities(leagueAvgGoals)
 
       modelScoreTotal += brierScore(
