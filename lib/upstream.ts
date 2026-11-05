@@ -6,6 +6,8 @@
  * cada rota repita o `fetch` e o tratamento de status.
  */
 
+import { unwrapApiPayload } from "@/lib/api-envelope"
+
 export const UPSTREAM_BASE =
   process.env.FUTEBOL_API_URL?.replace(/\/$/, "") ||
   "https://futebol-api-nine.vercel.app"
@@ -54,5 +56,5 @@ export async function getUpstreamJson<T>(
     throw new UpstreamError(response.status, path, detail)
   }
 
-  return response.json() as Promise<T>
+  return unwrapApiPayload<T>(await response.json())
 }

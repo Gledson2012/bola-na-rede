@@ -14,6 +14,7 @@ import {
   localizeCountry,
   localizeNewsCategory,
 } from "@/lib/pt-br"
+import { unwrapApiPayload } from "@/lib/api-envelope"
 
 const API_BASE = "/api/proxy"
 const REQUEST_TIMEOUT_MS = 15_000
@@ -84,7 +85,7 @@ async function fetchApi<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   try {
-    return (await res.json()) as T
+    return unwrapApiPayload<T>(await res.json())
   } catch {
     throw new Error("A resposta do servidor não pôde ser lida.")
   }
