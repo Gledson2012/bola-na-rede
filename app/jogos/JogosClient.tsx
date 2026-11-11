@@ -33,7 +33,7 @@ export default function JogosClient({
 }) {
   const { data: matches = [], isLoading, error, refetch, isRefetching } =
     useGlobalMatches(initialMatches)
-  const { favorites, pinnedMatches } = useFavorites()
+  const { favorites, pinnedMatches, pinnedLeagues, togglePinnedLeague } = useFavorites()
 
   const isTeamFavorite = useCallback(
     (teamId: string) => favorites.includes(teamId),
@@ -42,6 +42,10 @@ export default function JogosClient({
   const isMatchPinned = useCallback(
     (matchId: string) => pinnedMatches.includes(matchId),
     [pinnedMatches]
+  )
+  const isLeaguePinned = useCallback(
+    (leagueName: string) => pinnedLeagues.includes(leagueName),
+    [pinnedLeagues]
   )
 
   /**
@@ -220,15 +224,23 @@ export default function JogosClient({
       groups[comp].push(match)
     })
 
-    const sortedGroups = Object.entries(groups).map(([compName, compMatches]) => {
-      const meta = getCompetitionMeta(compName)
-      return {
-        name: compName,
-        flag: meta.flag,
-        region: meta.country || compMatches[0]?.competitionCountry || "Futebol",
-        matches: compMatches,
-      }
-    })
+    const sortedGroups = Object.entries(groups)
+      .map(([compName, compMatches]) => {
+        const meta = getCompetitionMeta(compName)
+        return {
+          name: compName,
+          flag: meta.flag,
+          region: meta.country || compMatches[0]?.competitionCountry || "Futebol",
+          matches: compMatches,
+        }
+      })
+      .sort((a, b) => {
+        const aPinned = pinnedLeagues.includes(a.name)
+        const bPinned = pinnedLeagues.includes(b.name)
+        if (aPinned && !bPinned) return -1
+        if (!aPinned && bPinned) return 1
+        return 0
+      })
 
     return {
       pinnedSectionMatches: pinnedList,
@@ -241,6 +253,7 @@ export default function JogosClient({
     activeCompetition,
     isMatchPinned,
     isTeamFavorite,
+    pinnedLeagues,
   ])
 
   // Atalhos de teclado (desktop): F busca, R atualiza e 1–5 alternam os filtros.
@@ -413,6 +426,26 @@ export default function JogosClient({
           )}
         </div>
 
+        {/* Resumo do Dia */}
+        <div className="grid grid-cols-4 gap-2 rounded-2xl border border-border/70 bg-card p-3 text-center">
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Total</div>
+            <div className="text-sm font-black text-foreground">{stats.total}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-live">Ao vivo</div>
+            <div className="text-sm font-black text-live">{stats.live}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Em breve</div>
+            <div className="text-sm font-black text-foreground">{stats.upcoming}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Fim</div>
+            <div className="text-sm font-black text-foreground">{stats.finished}</div>
+          </div>
+        </div>
+
         {/* Filtro por situação */}
         <SegmentedControl
           options={filterOptions}
@@ -541,32 +574,55 @@ export default function JogosClient({
 
             {groupedByCompetition.map((group) => {
               const isCollapsed = collapsedLeagues[group.name] ?? false
+              const isPinned = isLeaguePinned(group.name)
 
               return (
                 <section key={group.name} className="cv-auto space-y-2">
-                  <button
-                    onClick={() => toggleLeagueCollapse(group.name)}
-                    className="flex w-full items-center gap-2.5 px-0.5 py-1 text-left"
-                    aria-expanded={!isCollapsed}
-                  >
-                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-sm">
-                      {group.flag}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[11px] font-black leading-tight text-foreground">
-                        {group.name}
+                  <div className="flex w-full items-center gap-2 px-0.5 py-1">
+                    <button
+                      onClick={() => toggleLeagueCollapse(group.name)}
+                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                      aria-expanded={!isCollapsed}
+                    >
+                      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-sm">
+                        {group.flag}
                       </span>
-                      <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {group.region} · {group.matches.length}{" "}
-                        {group.matches.length === 1 ? "jogo" : "jogos"}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-1.5 truncate text-[11px] font-black leading-tight text-foreground">
+                          {group.name}
+                          {isPinned && <Star className="h-3 w-3 flex-shrink-0 fill-warning text-warning" />}
+                        </span>
+                        <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          {group.region} · {group.matches.length}{" "}
+                          {group.matches.length === 1 ? "jogo" : "jogos"}
+                        </span>
                       </span>
-                    </span>
-                    {isCollapsed ? (
-                      <ChevronDown className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    ) : (
-                      <ChevronUp className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                    )}
-                  </button>
+                    </button>
+                    <button
+                      onClick={() => togglePinnedLeague(group.name)}
+                      className={cn(
+                        "press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-colors",
+                        isPinned
+                          ? "border-warning/50 bg-warning/10 text-warning"
+                          : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
+                      )}
+                      title={isPinned ? "Desafixar liga" : "Fixar liga no topo"}
+                      aria-label={`Fixar liga ${group.name}`}
+                    >
+                      <Star className={cn("h-3.5 w-3.5", isPinned && "fill-current")} />
+                    </button>
+                    <button
+                      onClick={() => toggleLeagueCollapse(group.name)}
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
+                      aria-label={isCollapsed ? "Expandir liga" : "Recolher liga"}
+                    >
+                      {isCollapsed ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronUp className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
 
                   {!isCollapsed && (
                     <div className="space-y-2">

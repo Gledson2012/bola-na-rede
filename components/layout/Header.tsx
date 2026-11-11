@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
-import { Search, X, ChevronRight, Trophy } from "lucide-react"
+import { Search, X, ChevronRight, Trophy, Sun, Moon, Laptop } from "lucide-react"
 import { useLiveMatches } from "@/lib/queries"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
 import { SoccerBallIcon } from "@/components/icons/soccer-ball"
+import { useThemeStore } from "@/lib/store"
 
 export function Header() {
   const router = useRouter()
@@ -14,6 +15,18 @@ export function Header() {
   const { data: liveMatches = [] } = useLiveMatches()
   const [leaguesOpen, setLeaguesOpen] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
+
+  const theme = useThemeStore((state) => state.theme)
+  const setTheme = useThemeStore((state) => state.setTheme)
+
+  const cycleTheme = () => {
+    if (theme === "light") setTheme("dark")
+    else if (theme === "dark") setTheme("system")
+    else setTheme("light")
+  }
+
+  const themeLabel = theme === "light" ? "Claro" : theme === "dark" ? "Escuro" : "Sistema"
+  const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Laptop
 
   const liveCount = liveMatches.length
 
@@ -114,6 +127,15 @@ export function Header() {
           </Link>
 
           <div className="flex flex-shrink-0 items-center gap-1">
+            <button
+              onClick={cycleTheme}
+              className="press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title={`Tema: ${themeLabel} (clique para alterar)`}
+              aria-label={`Tema: ${themeLabel}`}
+            >
+              <ThemeIcon className="h-4 w-4" />
+            </button>
+
             <button
               onClick={() => setLeaguesOpen(true)}
               className="press inline-flex h-9 items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 text-[11px] font-bold text-foreground transition-colors hover:border-primary/30"

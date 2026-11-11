@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { cn, formatOdd } from "@/lib/utils"
 import type { Standing } from "@/types"
@@ -56,23 +57,83 @@ export function LeagueTable({
   competitionId = "",
   filterText = "",
 }: LeagueTableProps) {
-  const { isFavorite } = useFavorites()
+  const { isFavorite, favorites } = useFavorites()
+  const [sortBy, setSortBy] = useState<"position" | "points" | "goalDifference" | "wins" | "name">("position")
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
 
   const query = filterText.trim().toLocaleLowerCase("pt-BR")
-  const filtered = query
-    ? standings.filter((row) =>
-        [row.team.name, row.team.shortName]
-          .join(" ")
-          .toLocaleLowerCase("pt-BR")
-          .includes(query)
-      )
-    : standings
+
+  let processed = standings.filter((row) => {
+    if (onlyFavorites && !favorites.includes(row.team.id)) return false
+    if (
+      query &&
+      ![row.team.name, row.team.shortName]
+        .join(" ")
+        .toLocaleLowerCase("pt-BR")
+        .includes(query)
+    ) {
+      return false
+    }
+    return true
+  })
+
+  processed = [...processed].sort((a, b) => {
+    if (sortBy === "points") {
+      if (b.points !== a.points) return b.points - a.points
+      return b.goalDifference - a.goalDifference
+    }
+    if (sortBy === "goalDifference") {
+      if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference
+      return b.points - a.points
+    }
+    if (sortBy === "wins") {
+      if (b.won !== a.won) return b.won - a.won
+      return b.points - a.points
+    }
+    if (sortBy === "name") {
+      return a.team.name.localeCompare(b.team.name, "pt-BR")
+    }
+    return (a.position || 0) - (b.position || 0)
+  })
 
   const competitionMeta = getCompetitionMeta(competitionId)
   const zones = competitionMeta.zones
 
   return (
-    <div className="surface overflow-hidden">
+    <div className="surface overflow-hidden space-y-2">
+      {/* Table controls: Favorites filter & Sort dropdown */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-muted/30 px-3 py-2">
+        <button
+          type="button"
+          onClick={() => setOnlyFavorites(!onlyFavorites)}
+          className={cn(
+            "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold transition-all",
+            onlyFavorites
+              ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              : "border-border/80 bg-card text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Star className={cn("h-3 w-3", onlyFavorites && "fill-current text-amber-500")} />
+          <span>Meus Clubes ({favorites.length})</span>
+        </button>
+
+        <div className="flex items-center gap-1.5 text-[10px]">
+          <span className="font-semibold text-muted-foreground">Ordenar:</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="h-7 rounded-full border border-border/80 bg-card px-2.5 font-bold text-foreground outline-none"
+            aria-label="Ordenar tabela"
+          >
+            <option value="position">Tabela oficial</option>
+            <option value="points">Pontos</option>
+            <option value="goalDifference">Saldo de gols</option>
+            <option value="wins">Vitórias</option>
+            <option value="name">Alfabética (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-xs text-left">
           <caption className="sr-only">
@@ -98,7 +159,7 @@ export function LeagueTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {filtered.map((row, index) => {
+            {processed.map((row, index) => {
               const position = row.position || index + 1
               const favorite = isFavorite(row.team.id)
               const zone = getZoneForPosition(zones, position)
@@ -229,9 +290,9 @@ export function LeagueTable({
         </table>
       </div>
 
-      {filtered.length === 0 && (
+      {processed.length === 0 && (
         <p className="border-t border-border p-6 text-center text-xs text-muted-foreground">
-          Nenhum clube encontrado para “{filterText}”.
+          Nenhum clube encontrado.
         </p>
       )}
 

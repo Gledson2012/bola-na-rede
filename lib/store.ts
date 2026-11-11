@@ -29,12 +29,15 @@ interface FavoritesState {
   favorites: string[]
   pinnedMatches: string[]
   reminders: string[]
+  pinnedLeagues: string[]
   toggleFavorite: (teamId: string) => void
   isFavorite: (teamId: string) => boolean
   togglePinnedMatch: (matchId: string) => void
   isPinnedMatch: (matchId: string) => boolean
   toggleReminder: (matchId: string) => void
   hasReminder: (matchId: string) => boolean
+  togglePinnedLeague: (leagueName: string) => void
+  isPinnedLeague: (leagueName: string) => boolean
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -43,6 +46,7 @@ export const useFavoritesStore = create<FavoritesState>()(
       favorites: [],
       pinnedMatches: [],
       reminders: [],
+      pinnedLeagues: [],
       toggleFavorite: (teamId: string) => {
         set({ favorites: toggled(get().favorites, teamId) })
       },
@@ -55,6 +59,10 @@ export const useFavoritesStore = create<FavoritesState>()(
         set({ reminders: toggled(get().reminders, matchId) })
       },
       hasReminder: (matchId: string) => (get().reminders || []).includes(matchId),
+      togglePinnedLeague: (leagueName: string) => {
+        set({ pinnedLeagues: toggled(get().pinnedLeagues, leagueName) })
+      },
+      isPinnedLeague: (leagueName: string) => (get().pinnedLeagues || []).includes(leagueName),
     }),
     {
       name: 'futebol-favorites',
@@ -71,6 +79,7 @@ export const useFavoritesStore = create<FavoritesState>()(
           favorites: normalizeIds(state.favorites),
           pinnedMatches: normalizeIds(state.pinnedMatches),
           reminders: normalizeIds(state.reminders),
+          pinnedLeagues: normalizeIds(state.pinnedLeagues),
         } as FavoritesState
       },
       merge: (persisted, current) => {
@@ -80,6 +89,7 @@ export const useFavoritesStore = create<FavoritesState>()(
           favorites: normalizeIds(state.favorites),
           pinnedMatches: normalizeIds(state.pinnedMatches),
           reminders: normalizeIds(state.reminders),
+          pinnedLeagues: normalizeIds(state.pinnedLeagues),
         }
       },
     }
@@ -108,3 +118,27 @@ export function useIsPinnedMatch(matchId: string): boolean {
 export function useHasReminder(matchId: string): boolean {
   return useFavoritesStore((state) => (state.reminders || []).includes(matchId))
 }
+
+export function useIsPinnedLeague(leagueName: string): boolean {
+  return useFavoritesStore((state) => (state.pinnedLeagues || []).includes(leagueName))
+}
+
+export type ThemeMode = "system" | "light" | "dark"
+
+interface ThemeState {
+  theme: ThemeMode
+  setTheme: (theme: ThemeMode) => void
+}
+
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set) => ({
+      theme: "system",
+      setTheme: (theme: ThemeMode) => set({ theme }),
+    }),
+    {
+      name: "futebol-theme",
+      skipHydration: true,
+    }
+  )
+)

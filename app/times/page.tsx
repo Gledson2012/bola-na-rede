@@ -17,6 +17,7 @@ type SortOption = "name" | "favoritesFirst" | "gamesToday"
 
 const featuredLeagues = [
   { id: "", label: "Todas", flag: "🌐" },
+  { id: "favorites", label: "Meus Favoritos", flag: "⭐" },
   { id: "bra.1", label: "Brasileirão", flag: "🇧🇷" },
   { id: "eng.1", label: "Premier League", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
   { id: "esp.1", label: "La Liga", flag: "🇪🇸" },
@@ -38,7 +39,7 @@ export default function TimesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("favoritesFirst")
 
   const { data: leagueStandings = [], isLoading: leagueLoading } = useCompetitionTable(
-    selectedLeague || undefined
+    selectedLeague && selectedLeague !== "favorites" ? selectedLeague : undefined
   )
 
   // O endpoint `/teams` não informa atividade; contamos os jogos do dia/ao vivo
@@ -63,13 +64,18 @@ export default function TimesPage() {
   }, [todayMatches, liveMatches])
 
   const activeTeamsPool = useMemo(() => {
-    const base = selectedLeague ? leagueStandings.map((s) => s.team) : teams
+    let base = teams
+    if (selectedLeague === "favorites") {
+      base = teams.filter((t) => favorites.includes(t.id))
+    } else if (selectedLeague) {
+      base = leagueStandings.map((s) => s.team)
+    }
     return base.map((team) => ({
       ...team,
       matchesToday: activity.today.get(team.id) ?? team.matchesToday ?? 0,
       liveMatches: activity.live.get(team.id) ?? team.liveMatches ?? 0,
     }))
-  }, [selectedLeague, leagueStandings, teams, activity])
+  }, [selectedLeague, leagueStandings, teams, favorites, activity])
 
   const processedTeams = useMemo(() => {
     let result = activeTeamsPool

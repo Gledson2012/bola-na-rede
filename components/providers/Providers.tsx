@@ -9,7 +9,7 @@ import {
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister"
 import { useEffect, useState } from "react"
-import { useFavoritesStore } from "@/lib/store"
+import { useFavoritesStore, useThemeStore } from "@/lib/store"
 import { shouldPersistQuery } from "@/lib/query-persistence"
 
 type DevtoolsComponent = React.ComponentType<{ initialIsOpen?: boolean }>
@@ -84,6 +84,44 @@ function HydrationGate({ children }: { children: React.ReactNode }) {
       {children}
     </IsRestoringProvider>
   )
+}
+
+function ThemeSync() {
+  const theme = useThemeStore((state) => state.theme)
+
+  useEffect(() => {
+    try {
+      useThemeStore.persist.rehydrate()
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    const root = document.documentElement
+    const isDark =
+      theme === "dark" ||
+      (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+
+    if (isDark) {
+      root.classList.add("dark")
+    } else {
+      root.classList.remove("dark")
+    }
+
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+      const handler = (e: MediaQueryListEvent) => {
+        if (e.matches) {
+          root.classList.add("dark")
+        } else {
+          root.classList.remove("dark")
+        }
+      }
+      mediaQuery.addEventListener("change", handler)
+      return () => mediaQuery.removeEventListener("change", handler)
+    }
+  }, [theme])
+
+  return null
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -172,6 +210,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const content = (
     <HydrationGate>
+      <ThemeSync />
       {children}
       {Devtools ? <Devtools initialIsOpen={false} /> : null}
     </HydrationGate>

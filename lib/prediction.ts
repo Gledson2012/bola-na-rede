@@ -83,10 +83,19 @@ export interface MatchAnalysis {
   expectedGoals: { home: number; away: number; total: number }
   probabilities: OutcomeProbabilities
   markets: {
+    over15: MarketProbability
+    under15: MarketProbability
     over25: MarketProbability
     under25: MarketProbability
+    over35: MarketProbability
+    under35: MarketProbability
     bttsYes: MarketProbability
     bttsNo: MarketProbability
+    doubleChance1X: MarketProbability
+    doubleChanceX2: MarketProbability
+    doubleChance12: MarketProbability
+    homeCleanSheet: MarketProbability
+    awayCleanSheet: MarketProbability
   }
   topScores: ScoreProbability[]
   live: LivePrediction | null
@@ -246,27 +255,59 @@ function outcomesFromMatrix(matrix: number[][]): OutcomeProbabilities {
 }
 
 function marketsFromMatrix(matrix: number[][]): {
+  over15: number
+  under15: number
   over25: number
   under25: number
+  over35: number
+  under35: number
   bttsYes: number
   bttsNo: number
+  doubleChance1X: number
+  doubleChanceX2: number
+  doubleChance12: number
+  homeCleanSheet: number
+  awayCleanSheet: number
 } {
+  let over15 = 0
   let over25 = 0
+  let over35 = 0
   let bttsYes = 0
+  let doubleChance1X = 0
+  let doubleChanceX2 = 0
+  let doubleChance12 = 0
+  let homeCleanSheet = 0
+  let awayCleanSheet = 0
 
   for (let h = 0; h < matrix.length; h++) {
     for (let a = 0; a < matrix[h].length; a++) {
       const probability = matrix[h][a]
+      if (h + a >= 2) over15 += probability
       if (h + a >= 3) over25 += probability
+      if (h + a >= 4) over35 += probability
       if (h >= 1 && a >= 1) bttsYes += probability
+      if (h >= a) doubleChance1X += probability
+      if (h <= a) doubleChanceX2 += probability
+      if (h !== a) doubleChance12 += probability
+      if (a === 0) homeCleanSheet += probability
+      if (h === 0) awayCleanSheet += probability
     }
   }
 
   return {
+    over15,
+    under15: 1 - over15,
     over25,
     under25: 1 - over25,
+    over35,
+    under35: 1 - over35,
     bttsYes,
     bttsNo: 1 - bttsYes,
+    doubleChance1X,
+    doubleChanceX2,
+    doubleChance12,
+    homeCleanSheet,
+    awayCleanSheet,
   }
 }
 
@@ -373,10 +414,19 @@ function baseAnalysis(match: Match): MatchAnalysis {
     expectedGoals: { home: 0, away: 0, total: 0 },
     probabilities: { home: 1 / 3, draw: 1 / 3, away: 1 / 3 },
     markets: {
+      over15: market(0),
+      under15: market(0),
       over25: market(0),
       under25: market(0),
+      over35: market(0),
+      under35: market(0),
       bttsYes: market(0),
       bttsNo: market(0),
+      doubleChance1X: market(0),
+      doubleChanceX2: market(0),
+      doubleChance12: market(0),
+      homeCleanSheet: market(0),
+      awayCleanSheet: market(0),
     },
     topScores: [],
     live: null,
@@ -574,10 +624,19 @@ export function analyzeMatch(
     },
     probabilities: outcomes,
     markets: {
+      over15: market(markets.over15),
+      under15: market(markets.under15),
       over25: market(markets.over25),
       under25: market(markets.under25),
+      over35: market(markets.over35),
+      under35: market(markets.under35),
       bttsYes: market(markets.bttsYes),
       bttsNo: market(markets.bttsNo),
+      doubleChance1X: market(markets.doubleChance1X),
+      doubleChanceX2: market(markets.doubleChanceX2),
+      doubleChance12: market(markets.doubleChance12),
+      homeCleanSheet: market(markets.homeCleanSheet),
+      awayCleanSheet: market(markets.awayCleanSheet),
     },
     topScores: topScoresFromMatrix(matrix),
   }

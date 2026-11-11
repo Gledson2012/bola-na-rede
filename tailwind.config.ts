@@ -1,10 +1,8 @@
 import type { Config } from "tailwindcss"
 
 const config: Config = {
-  // Segue a preferência do sistema: as variantes `dark:*` do projeto passam a
-  // valer de verdade. Antes o modo era "class" sem que a classe `dark` fosse
-  // aplicada em lugar nenhum, o que deixava todas essas variantes mortas.
-  darkMode: "media",
+  // Suporte a classe "dark" para alternância explícita de tema (Claro / Escuro / Sistema).
+  darkMode: "class",
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",

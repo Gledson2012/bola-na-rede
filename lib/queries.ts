@@ -249,6 +249,9 @@ export function useFavorites() {
   const reminders = useFavoritesStore((state) => state.reminders || [])
   const toggleReminder = useFavoritesStore((state) => state.toggleReminder)
   const hasReminder = useFavoritesStore((state) => state.hasReminder)
+  const pinnedLeagues = useFavoritesStore((state) => state.pinnedLeagues || [])
+  const togglePinnedLeague = useFavoritesStore((state) => state.togglePinnedLeague)
+  const isPinnedLeague = useFavoritesStore((state) => state.isPinnedLeague)
 
   return {
     favorites,
@@ -260,5 +263,8 @@ export function useFavorites() {
     reminders,
     toggleReminder,
     hasReminder,
+    pinnedLeagues,
+    togglePinnedLeague,
+    isPinnedLeague,
   }
 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Activity, AlertTriangle, Clock, TrendingDown, TrendingUp } from "lucide-react"
 import { cn, formatOdd, percent } from "@/lib/utils"
 import type { MatchAnalysis } from "@/lib/prediction"
@@ -176,6 +177,7 @@ function LiveDelta({ analysis }: { analysis: MatchAnalysis }) {
 }
 
 export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
+  const [showAllMarkets, setShowAllMarkets] = useState(false)
   const probabilities = analysis.live?.probabilities ?? analysis.probabilities
   const outcomes = [
     {
@@ -317,11 +319,21 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
 
       {/* Mercados */}
       <div className="mt-3 space-y-2.5 border-t border-border/70 px-4 py-3">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-          Mercados pré-jogo
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            Mercados pré-jogo
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowAllMarkets(!showAllMarkets)}
+            className="text-[10px] font-bold text-primary hover:underline"
+          >
+            {showAllMarkets ? "Menos mercados ▴" : "Mais mercados (Dupla Hipótese, 1.5, 3.5) ▾"}
+          </button>
+        </div>
+
         <MarketRow
-          label="Total de gols"
+          label="Total de gols (2.5)"
           leftLabel="Mais de 2,5"
           left={analysis.markets.over25.probability}
           rightLabel="Menos de 2,5"
@@ -338,6 +350,47 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
           leftClassName="bg-emerald-500"
           rightClassName="bg-slate-400 dark:bg-slate-600"
         />
+
+        {showAllMarkets && (
+          <div className="space-y-2.5 pt-2 border-t border-border/50 animate-in fade-in">
+            <MarketRow
+              label="Total de gols (1.5)"
+              leftLabel="Mais de 1,5"
+              left={analysis.markets.over15.probability}
+              rightLabel="Menos de 1,5"
+              right={analysis.markets.under15.probability}
+              leftClassName="bg-primary"
+              rightClassName="bg-slate-400 dark:bg-slate-600"
+            />
+            <MarketRow
+              label="Total de gols (3.5)"
+              leftLabel="Mais de 3,5"
+              left={analysis.markets.over35.probability}
+              rightLabel="Menos de 3,5"
+              right={analysis.markets.under35.probability}
+              leftClassName="bg-primary"
+              rightClassName="bg-slate-400 dark:bg-slate-600"
+            />
+            <MarketRow
+              label="Dupla hipótese (1X / X2)"
+              leftLabel="1X (Casa ou Empate)"
+              left={analysis.markets.doubleChance1X.probability}
+              rightLabel="X2 (Empate ou Fora)"
+              right={analysis.markets.doubleChanceX2.probability}
+              leftClassName="bg-amber-500"
+              rightClassName="bg-sky-500"
+            />
+            <MarketRow
+              label="Time sem sofrer gols (Clean Sheet)"
+              leftLabel={`${analysis.home.shortName} (Sem sofrer)`}
+              left={analysis.markets.homeCleanSheet.probability}
+              rightLabel={`${analysis.away.shortName} (Sem sofrer)`}
+              right={analysis.markets.awayCleanSheet.probability}
+              leftClassName="bg-emerald-500"
+              rightClassName="bg-sky-500"
+            />
+          </div>
+        )}
       </div>
 
       {/* Placar mais provável + amostra */}

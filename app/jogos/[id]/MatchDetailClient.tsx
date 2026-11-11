@@ -247,18 +247,20 @@ export default function MatchDetailClient({
           <div className="relative z-10 grid grid-cols-7 items-center gap-3 py-6">
             {/* Home Team */}
             <div className="col-span-3 flex flex-col items-center text-center">
-              <DetailTeamLogo
-                src={match.homeTeam.logo}
-                alt={match.homeTeam.name}
-                name={match.homeTeam.name}
-                size={58}
-              />
-              <h2 className="text-sm sm:text-base font-extrabold mt-2 leading-tight text-white">
-                {match.homeTeam.name}
-              </h2>
-              <span className="text-[10px] text-white/60 font-semibold uppercase tracking-wider mt-0.5">
-                {match.homeTeam.shortName}
-              </span>
+              <Link href={`/times/${match.homeTeam.id}`} className="group flex flex-col items-center transition-opacity hover:opacity-90">
+                <DetailTeamLogo
+                  src={match.homeTeam.logo}
+                  alt={match.homeTeam.name}
+                  name={match.homeTeam.name}
+                  size={58}
+                />
+                <h2 className="text-sm sm:text-base font-extrabold mt-2 leading-tight text-white group-hover:underline">
+                  {match.homeTeam.name}
+                </h2>
+                <span className="text-[10px] text-white/60 font-semibold uppercase tracking-wider mt-0.5">
+                  {match.homeTeam.shortName}
+                </span>
+              </Link>
             </div>
 
             {/* Center Score / Time */}
@@ -293,18 +295,20 @@ export default function MatchDetailClient({
 
             {/* Away Team */}
             <div className="col-span-3 flex flex-col items-center text-center">
-              <DetailTeamLogo
-                src={match.awayTeam.logo}
-                alt={match.awayTeam.name}
-                name={match.awayTeam.name}
-                size={58}
-              />
-              <h2 className="text-sm sm:text-base font-extrabold mt-2 leading-tight text-white">
-                {match.awayTeam.name}
-              </h2>
-              <span className="text-[10px] text-white/60 font-semibold uppercase tracking-wider mt-0.5">
-                {match.awayTeam.shortName}
-              </span>
+              <Link href={`/times/${match.awayTeam.id}`} className="group flex flex-col items-center transition-opacity hover:opacity-90">
+                <DetailTeamLogo
+                  src={match.awayTeam.logo}
+                  alt={match.awayTeam.name}
+                  name={match.awayTeam.name}
+                  size={58}
+                />
+                <h2 className="text-sm sm:text-base font-extrabold mt-2 leading-tight text-white group-hover:underline">
+                  {match.awayTeam.name}
+                </h2>
+                <span className="text-[10px] text-white/60 font-semibold uppercase tracking-wider mt-0.5">
+                  {match.awayTeam.shortName}
+                </span>
+              </Link>
             </div>
           </div>
 

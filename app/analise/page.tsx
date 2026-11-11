@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { AlertTriangle, RefreshCw, Search } from "lucide-react"
-import { useAnalysis } from "@/lib/queries"
+import { AlertTriangle, RefreshCw, Search, Info } from "lucide-react"
+import { useAnalysis, useFavorites } from "@/lib/queries"
 import type { MatchAnalysis } from "@/lib/prediction"
 import { cn, formatOdd, percent } from "@/lib/utils"
 import { triggerHaptic } from "@/lib/haptics"
@@ -13,8 +13,18 @@ import { BacktestPanel } from "@/components/analise/BacktestPanel"
 import { AnalysisHighlights } from "@/components/analise/AnalysisHighlights"
 import { PageHeader } from "@/components/ui/page-header"
 import { SegmentedControl } from "@/components/ui/segmented-control"
+import { FilterChip } from "@/components/ui/filter-chip"
 
-type MatchFilter = "todos" | "upcoming" | "live" | "finished" | "insufficient"
+type MatchFilter =
+  | "todos"
+  | "upcoming"
+  | "live"
+  | "finished"
+  | "insufficient"
+  | "alta-confianca"
+  | "favorito-claro"
+  | "equilibrados"
+  | "meus-clubes"
 type SortOption = "probabilidade" | "confianca" | "horario" | "campeonato"
 
 function bestProbability(analysis: MatchAnalysis): number {
@@ -23,18 +33,118 @@ function bestProbability(analysis: MatchAnalysis): number {
   return Math.max(probabilities.home ?? 0, probabilities.draw ?? 0, probabilities.away ?? 0)
 }
 
+function ModelInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in">
+      <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-border/70 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/15 text-sm">
+              📊
+            </span>
+            <h2 className="text-base font-black">Como funciona a Análise</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Fechar"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
+          <div>
+            <h3 className="font-bold text-foreground mb-1">⚽ Modelo de Poisson & Dixon-Coles</h3>
+            <p>
+              Calcula a expectativa de gols de cada time com base na força de ataque e defesa derivada da tabela da liga e forma recente. O ajuste de Dixon-Coles corrige a correlação de placares baixos (0-0, 1-0, 0-1, 1-1).
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-foreground mb-1">⚖️ Odd Justa</h3>
+            <p>
+              Representa a probabilidade matemática pura calculada pelo modelo. É o inverso da probabilidade (1 / probabilidade). Se a odd oferecida por casas de apostas for maior que a odd justa, o modelo aponta valor estatístico.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-foreground mb-1">🔥 Nível de Confiança e Amostra</h3>
+            <p>
+              Avaliado com base na quantidade de partidas jogadas. Amostras curtas (&lt;6 jogos) utilizam correção bayesiana para puxar os valores em direção à média da liga.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="font-bold text-foreground mb-1">🎯 Brier Score (Backtest)</h3>
+            <p>
+              Mede a precisão histórica das previsões comparando as probabilidades estimadas com os resultados reais ocorridos nos últimos dias.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-border/70 text-right">
+          <button
+            onClick={onClose}
+            className="press rounded-full bg-primary px-5 py-2 text-xs font-black text-primary-foreground"
+          >
+            Entendi
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AnalisePage() {
   const { data, error, isError, isLoading, isRefetching, refetch } = useAnalysis()
+  const { favorites } = useFavorites()
   const [filter, setFilter] = useState<MatchFilter>("todos")
   const [sortBy, setSortBy] = useState<SortOption>("probabilidade")
   const [search, setSearch] = useState("")
+  const [activeCompetition, setActiveCompetition] = useState<string | null>(null)
+  const [showInfoModal, setShowInfoModal] = useState(false)
+
+  const availableCompetitions = useMemo(() => {
+    const map = new Map<string, number>()
+    ;(data?.matches ?? []).forEach((m) => {
+      if (m.competition) {
+        map.set(m.competition, (map.get(m.competition) || 0) + 1)
+      }
+    })
+    return Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => ({ name, count }))
+  }, [data?.matches])
 
   const matches = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR")
 
     const filtered = (data?.matches ?? []).filter((match) => {
       if (filter === "insufficient") return !match.available
-      if (filter !== "todos" && match.status !== filter) return false
+      if (filter === "live" && match.status !== "live") return false
+      if (filter === "upcoming" && match.status !== "upcoming") return false
+      if (filter === "finished" && match.status !== "finished") return false
+      if (filter === "alta-confianca" && (match.confidence !== "alta" || !match.available)) return false
+      if (filter === "favorito-claro") {
+        if (!match.available) return false
+        const p = match.live?.probabilities ?? match.probabilities
+        if (!p) return false
+        const maxP = Math.max(p.home ?? 0, p.draw ?? 0, p.away ?? 0)
+        if (maxP < 0.60) return false
+      }
+      if (filter === "equilibrados") {
+        if (!match.available) return false
+        const p = match.live?.probabilities ?? match.probabilities
+        if (!p) return false
+        const diff = Math.abs((p.home ?? 0) - (p.away ?? 0))
+        if (diff > 0.15) return false
+      }
+      if (filter === "meus-clubes") {
+        const isFav = favorites.includes(match.home.id) || favorites.includes(match.away.id)
+        if (!isFav) return false
+      }
+      if (activeCompetition && match.competition !== activeCompetition) return false
       return true
     })
 
@@ -73,7 +183,7 @@ export default function AnalisePage() {
           return (a.kickoff || "").localeCompare(b.kickoff || "")
       }
     })
-  }, [data?.matches, filter, search, sortBy])
+  }, [data?.matches, filter, search, sortBy, activeCompetition, favorites])
 
   const summary = useMemo(() => data?.summary ?? {
     total: 0,
@@ -107,19 +217,30 @@ export default function AnalisePage() {
             : "Probabilidades, odd justa e confiança por partida."
         }
         action={
-          <button
-            type="button"
-            onClick={() => {
-              void triggerHaptic(ImpactStyle.Light)
-              void refetch()
-            }}
-            disabled={isRefetching}
-            className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
-            title="Atualizar análise"
-            aria-label="Atualizar análise"
-          >
-            <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowInfoModal(true)}
+              className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground"
+              title="Como funciona a análise"
+              aria-label="Como funciona a análise"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void triggerHaptic(ImpactStyle.Light)
+                void refetch()
+              }}
+              disabled={isRefetching}
+              className="press flex h-9 w-9 items-center justify-center rounded-full border border-border/80 bg-card text-muted-foreground transition-colors hover:text-foreground disabled:opacity-60"
+              title="Atualizar análise"
+              aria-label="Atualizar análise"
+            >
+              <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
+            </button>
+          </div>
         }
       />
 
@@ -267,6 +388,24 @@ export default function AnalisePage() {
           />
         </label>
 
+        {availableCompetitions.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+            <FilterChip active={!activeCompetition} onClick={() => setActiveCompetition(null)}>
+              Todas as ligas ({data?.matches?.length ?? 0})
+            </FilterChip>
+            {availableCompetitions.map((comp) => (
+              <FilterChip
+                key={comp.name}
+                active={activeCompetition === comp.name}
+                onClick={() => setActiveCompetition(activeCompetition === comp.name ? null : comp.name)}
+              >
+                <span>{comp.name}</span>
+                <span className="tabular opacity-60">{comp.count}</span>
+              </FilterChip>
+            ))}
+          </div>
+        )}
+
         <SegmentedControl
           options={filterOptions.map(({ value, label, count }) => ({
             value,
@@ -278,6 +417,39 @@ export default function AnalisePage() {
           onChange={setFilter}
           ariaLabel="Filtrar partidas"
         />
+
+        {/* Filtros rápidos de oportunidades do modelo */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+          <FilterChip
+            active={filter === "meus-clubes"}
+            onClick={() => setFilter(filter === "meus-clubes" ? "todos" : "meus-clubes")}
+            count={favorites.length > 0 ? (data?.matches ?? []).filter(m => favorites.includes(m.home.id) || favorites.includes(m.away.id)).length : undefined}
+          >
+            <span>⭐</span>
+            <span>Meus Clubes</span>
+          </FilterChip>
+          <FilterChip
+            active={filter === "alta-confianca"}
+            onClick={() => setFilter(filter === "alta-confianca" ? "todos" : "alta-confianca")}
+          >
+            <span>🔥</span>
+            <span>Alta Confiança</span>
+          </FilterChip>
+          <FilterChip
+            active={filter === "favorito-claro"}
+            onClick={() => setFilter(filter === "favorito-claro" ? "todos" : "favorito-claro")}
+          >
+            <span>⭐</span>
+            <span>Favorito Claro (&gt;60%)</span>
+          </FilterChip>
+          <FilterChip
+            active={filter === "equilibrados"}
+            onClick={() => setFilter(filter === "equilibrados" ? "todos" : "equilibrados")}
+          >
+            <span>⚖️</span>
+            <span>Equilibrados</span>
+          </FilterChip>
+        </div>
 
         {isLoading ? (
           <div className="space-y-3">
@@ -317,6 +489,8 @@ export default function AnalisePage() {
           </div>
         )}
       </section>
+
+      {showInfoModal && <ModelInfoModal onClose={() => setShowInfoModal(false)} />}
     </div>
   )
 }

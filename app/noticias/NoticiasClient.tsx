@@ -32,6 +32,7 @@ export default function NoticiasClient({
   const [search, setSearch] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<"all" | "saved">("all")
   const [readingNews, setReadingNews] = useState<News | null>(null)
   const { message: toastMessage, show: showToast } = useToast()
 
@@ -75,6 +76,7 @@ export default function NoticiasClient({
       }
       return updated
     })
+    showToast("Notícia removida dos salvos")
   }
 
   const isNewsSaved = (newsId: string) => savedNews.some((item) => item.id === newsId)
@@ -100,8 +102,9 @@ export default function NoticiasClient({
   const filteredNews = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("pt-BR")
     const categoryFilter = selectedCategory || undefined
+    const baseList = viewMode === "saved" ? savedNews : news
 
-    const result = news.filter((item) => {
+    const result = baseList.filter((item) => {
       if (categoryFilter && item.category !== categoryFilter) return false
       if (selectedProvider && item.provider !== selectedProvider) return false
       if (!query) return true
@@ -122,7 +125,7 @@ export default function NoticiasClient({
       const timeB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0
       return timeB - timeA
     })
-  }, [news, search, selectedProvider, selectedCategory])
+  }, [news, savedNews, viewMode, search, selectedProvider, selectedCategory])
 
   const featuredStory = filteredNews[0] ?? null
   const remainingStories = filteredNews.slice(1)
@@ -270,28 +273,34 @@ export default function NoticiasClient({
           )}
         </div>
 
-        {categories.length > 1 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+          <FilterChip
+            active={viewMode === "all"}
+            onClick={() => setViewMode("all")}
+          >
+            📰 Todas ({news.length})
+          </FilterChip>
+          <FilterChip
+            active={viewMode === "saved"}
+            onClick={() => setViewMode("saved")}
+            count={savedNews.length}
+          >
+            ⭐ Salvas
+          </FilterChip>
+          {categories.map(([name, count]) => (
             <FilterChip
-              active={!selectedCategory}
-              onClick={() => setSelectedCategory(null)}
+              key={name}
+              active={selectedCategory === name && viewMode === "all"}
+              onClick={() => {
+                setViewMode("all")
+                setSelectedCategory(selectedCategory === name ? null : name)
+              }}
+              count={count}
             >
-              Tudo
+              {name}
             </FilterChip>
-            {categories.map(([name, count]) => (
-              <FilterChip
-                key={name}
-                active={selectedCategory === name}
-                onClick={() =>
-                  setSelectedCategory(selectedCategory === name ? null : name)
-                }
-                count={count}
-              >
-                {name}
-              </FilterChip>
-            ))}
-          </div>
-        )}
+          ))}
+        </div>
 
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-semibold text-muted-foreground">
