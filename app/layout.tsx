@@ -5,6 +5,7 @@ import { BottomNav } from "@/components/layout/BottomNav"
 import { Providers } from "@/components/providers/Providers"
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration"
 import { OfflineBanner } from "@/components/OfflineBanner"
+import { ScrollToTop } from "@/components/ui/scroll-to-top"
 import { GoalMonitor } from "@/components/futebol/GoalMonitor"
 
 const SITE_URL =
@@ -90,6 +91,7 @@ export default function RootLayout({
             </a>
             <Header />
             <OfflineBanner />
+            <ScrollToTop />
             <main
               id="conteudo"
               tabIndex={-1}
