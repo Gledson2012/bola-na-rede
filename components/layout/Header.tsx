@@ -2,16 +2,16 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
-import { Search, X, ChevronRight, Trophy, Sun, Moon, Laptop } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { X, ChevronRight, Trophy, Sun, Moon, Laptop } from "lucide-react"
 import { useLiveMatches } from "@/lib/queries"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
 import { SoccerBallIcon } from "@/components/icons/soccer-ball"
 import { useThemeStore } from "@/lib/store"
+import { GlobalSearch } from "@/components/layout/GlobalSearch"
 
 export function Header() {
   const router = useRouter()
-  const pathname = usePathname()
   const { data: liveMatches = [] } = useLiveMatches()
   const [leaguesOpen, setLeaguesOpen] = useState(false)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -87,15 +87,6 @@ export function Header() {
     }
   }, [leaguesOpen])
 
-  const handleSearchClick = () => {
-    if (pathname === "/jogos") {
-      const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement | null
-      searchInput?.focus()
-    } else {
-      router.push("/jogos")
-    }
-  }
-
   const handleSelectLeague = (leagueId: string) => {
     setLeaguesOpen(false)
     router.push(`/classificacao?league=${leagueId}`)
@@ -145,13 +136,7 @@ export function Header() {
               <span>Ligas</span>
             </button>
 
-            <button
-              onClick={handleSearchClick}
-              className="press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Buscar"
-            >
-              <Search className="h-4 w-4" />
-            </button>
+            <GlobalSearch />
           </div>
         </div>
       </header>
