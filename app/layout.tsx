@@ -7,6 +7,7 @@ import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistratio
 import { OfflineBanner } from "@/components/OfflineBanner"
 import { ScrollToTop } from "@/components/ui/scroll-to-top"
 import { Analytics } from "@vercel/analytics/react"
+import { InstallPrompt } from "@/components/pwa/InstallPrompt"
 import { GoalMonitor } from "@/components/futebol/GoalMonitor"
 
 const SITE_URL =
@@ -101,6 +102,7 @@ export default function RootLayout({
               {children}
             </main>
             <Analytics />
+            <InstallPrompt />
             <GoalMonitor />
             <BottomNav />
           </div>
