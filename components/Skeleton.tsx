@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("animate-pulse rounded bg-muted", className)}
+      className={cn("shimmer rounded", className)}
       {...props}
     />
   )
@@ -116,7 +116,7 @@ export function LeagueTableSkeleton() {
           </thead>
           <tbody>
             {Array.from({ length: 8 }).map((_, i) => (
-              <tr key={i} className="animate-pulse">
+              <tr key={i} className="shimmer">
                 <td className="py-2.5 pl-3 pr-1"><Skeleton className="h-4 w-6" /></td>
                 <td className="px-2 py-2.5">
                   <div className="flex items-center gap-2">
@@ -181,7 +181,7 @@ export function MatchDetailSkeleton() {
         </div>
         <div className="p-3 space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-start gap-3 p-2 rounded-lg border border-border/50 bg-muted/30 animate-pulse">
+            <div key={i} className="flex items-start gap-3 p-2 rounded-lg border border-border/50 bg-muted/30 shimmer">
               <Skeleton className="w-6 h-6 rounded-full" />
               <div className="flex-1 space-y-1">
                 <Skeleton className="h-3 w-24" />
@@ -214,7 +214,7 @@ export function TeamDetailSkeleton() {
         <div className="p-3 border-b border-border/50">
           <Skeleton className="h-4 w-32" />
         </div>
-        <div className="flex items-end gap-2 p-3 h-20 animate-pulse">
+        <div className="flex items-end gap-2 p-3 h-20 shimmer">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex-1 rounded-t-lg bg-muted" />
           ))}
