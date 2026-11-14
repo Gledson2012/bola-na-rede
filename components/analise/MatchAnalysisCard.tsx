@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Activity, AlertTriangle, Clock, TrendingDown, TrendingUp } from "lucide-react"
+import { Activity, AlertTriangle, Clock, Share2, TrendingDown, TrendingUp } from "lucide-react"
 import { cn, formatOdd, percent } from "@/lib/utils"
 import type { MatchAnalysis } from "@/lib/prediction"
 import { TeamLogo } from "@/components/futebol/TeamLogo"
@@ -178,6 +178,24 @@ function LiveDelta({ analysis }: { analysis: MatchAnalysis }) {
 
 export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
   const [showAllMarkets, setShowAllMarkets] = useState(false)
+
+  const handleShare = async () => {
+    const url = typeof window !== "undefined" ? `${window.location.origin}/jogos/${analysis.matchId}` : ""
+    const text = `${analysis.home.name} x ${analysis.away.name} — ${analysis.competition}`
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: text, text, url })
+      } catch {
+        // cancelado
+      }
+    } else if (url) {
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // ignore
+      }
+    }
+  }
   const probabilities = analysis.live?.probabilities ?? analysis.probabilities
   const outcomes = [
     {
@@ -246,6 +264,14 @@ export function MatchAnalysisCard({ analysis }: { analysis: MatchAnalysis }) {
           </p>
         </div>
         <ConfidenceBadge analysis={analysis} />
+        <button
+          type="button"
+          onClick={handleShare}
+          aria-label="Compartilhar análise"
+          className="press flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <Share2 className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {/* Times e placar */}
