@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent, type ReactNode } from "react"
 import Image from "next/image"
 import type { News } from "@/types"
-import { Clock, Eye, Heart } from "lucide-react"
+import { Clock, Eye, Heart, Share2 } from "lucide-react"
 import { RelativeTime } from "@/components/futebol/RelativeTime"
 import { SoccerBallIcon } from "@/components/icons/soccer-ball"
 import { cn } from "@/lib/utils"
@@ -59,6 +59,24 @@ export function NewsCard({
     onSaveToggle?.()
   }
 
+  const handleShare = async (event: React.MouseEvent) => {
+    event.stopPropagation()
+    const url = news.url || (typeof window !== "undefined" ? window.location.href : "")
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: news.title, text: news.excerpt, url })
+      } catch {
+        // usuário cancelou
+      }
+    } else if (url) {
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   const hasCategory = news.category && news.category !== "Geral"
 
   // Featured Large Banner Mode
@@ -106,12 +124,21 @@ export function NewsCard({
             )}
           </div>
 
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Compartilhar notícia"
+            className="absolute right-4 top-4 z-20 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition-colors hover:bg-black/80"
+          >
+            <Share2 className="h-3 w-3" />
+          </button>
+
           {isSaved !== undefined && onSaveToggle && (
             <button
               type="button"
               onClick={handleSaveToggle}
               aria-label={isSaved ? "Remover dos salvos" : "Salvar para depois"}
-              className="absolute right-4 top-4 z-20 rounded-full bg-primary p-2 text-primary-foreground backdrop-blur-md transition-colors hover:bg-primary/90"
+              className="absolute right-12 top-4 z-20 rounded-full bg-primary p-2 text-primary-foreground backdrop-blur-md transition-colors hover:bg-primary/90"
             >
               <Heart className={isSaved ? "h-3 w-3 fill-white" : "h-3 w-3"} />
             </button>
@@ -191,10 +218,20 @@ export function NewsCard({
             <Clock className="h-3 w-3" />
             <RelativeTime iso={news.publishedAt} fallback={news.date} />
           </span>
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {news.readTime}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label="Compartilhar notícia"
+              className="press flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <Share2 className="h-3 w-3" />
+            </button>
+            <span className="flex items-center gap-1">
+              <Eye className="h-3 w-3" />
+              {news.readTime}
+            </span>
+          </div>
         </div>
       </div>
 
