@@ -134,7 +134,7 @@ export function MatchCard({ match, compact = false, showCompetition = false }: M
         </div>
 
         {/* Times e placar */}
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="min-w-0 flex-1 space-y-1.5" aria-live={isLive ? "polite" : undefined} aria-atomic="true">
           {showCompetition && (
             <p className="line-1 -mb-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-muted-foreground">
               {match.competition}

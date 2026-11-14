@@ -12,7 +12,7 @@
  * referencia os chunks novos. Só os arquivos com hash são servidos do cache.
  */
 
-const VERSION = "1"
+const VERSION = "2"
 const STATIC_CACHE = `bnr-static-${VERSION}`
 const OFFLINE_CACHE = `bnr-offline-${VERSION}`
 const OFFLINE_URL = "/offline.html"
@@ -100,6 +100,26 @@ self.addEventListener("fetch", (event) => {
   if (isImmutableAsset) {
     event.respondWith(
       cacheFirst(request).catch(() => new Response("", { status: 504 }))
+    )
+    return
+  }
+
+  // Cache de respostas da API para uso offline (stale-while-revalidate)
+  const isApiRoute = url.pathname.startsWith("/api/")
+  if (isApiRoute) {
+    event.respondWith(
+      caches.open("bnr-api-cache").then(async (cache) => {
+        const cached = await cache.match(request)
+        const fetchPromise = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              cache.put(request, response.clone()).catch(() => undefined)
+            }
+            return response
+          })
+          .catch(() => cached || new Response("{}", { status: 503, headers: { "Content-Type": "application/json" } }))
+        return cached || fetchPromise
+      })
     )
   }
 })
