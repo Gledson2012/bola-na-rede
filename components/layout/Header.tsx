@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { X, ChevronRight, Trophy, Sun, Moon, Laptop, Settings } from "lucide-react"
+import { X, ChevronRight, Trophy, Sun, Moon, Laptop, Settings, Bell } from "lucide-react"
 import { useLiveMatches } from "@/lib/queries"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
 import { SoccerBallIcon } from "@/components/icons/soccer-ball"
@@ -136,6 +136,13 @@ export function Header() {
               <span>Ligas</span>
             </button>
 
+            <Link
+              href="/notificacoes"
+              className="press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Notificações"
+            >
+              <Bell className="h-4 w-4" />
+            </Link>
             <Link
               href="/configuracoes"
               className="press flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
