@@ -6,6 +6,7 @@ import { Providers } from "@/components/providers/Providers"
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration"
 import { OfflineBanner } from "@/components/OfflineBanner"
 import { ScrollToTop } from "@/components/ui/scroll-to-top"
+import { Analytics } from "@vercel/analytics/react"
 import { GoalMonitor } from "@/components/futebol/GoalMonitor"
 
 const SITE_URL =
@@ -99,6 +100,7 @@ export default function RootLayout({
             >
               {children}
             </main>
+            <Analytics />
             <GoalMonitor />
             <BottomNav />
           </div>
