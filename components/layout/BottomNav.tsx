@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, Users, Trophy, Newspaper } from "lucide-react"
+import { BarChart3, Users, Trophy, Newspaper, Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLiveMatches } from "@/lib/queries"
 import { SoccerBallIcon } from "@/components/icons/soccer-ball"
@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { href: "/times", label: "Times", icon: Users },
   { href: "/classificacao", label: "Tabela", icon: Trophy },
   { href: "/noticias", label: "Notícias", icon: Newspaper },
+  { href: "/favoritos", label: "Favoritos", icon: Heart },
 ]
 
 export function BottomNav() {
