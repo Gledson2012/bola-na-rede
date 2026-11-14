@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { AlertTriangle, RefreshCw, Search, Info } from "lucide-react"
 import { useAnalysis, useFavorites } from "@/lib/queries"
 import type { MatchAnalysis } from "@/lib/prediction"
@@ -99,8 +99,21 @@ function ModelInfoModal({ onClose }: { onClose: () => void }) {
 export default function AnalisePage() {
   const { data, error, isError, isLoading, isRefetching, refetch } = useAnalysis()
   const { favorites } = useFavorites()
-  const [filter, setFilter] = useState<MatchFilter>("todos")
-  const [sortBy, setSortBy] = useState<SortOption>("probabilidade")
+  const [filter, setFilter] = useState<MatchFilter>(() => {
+    if (typeof window === "undefined") return "todos"
+    return (localStorage.getItem("analise-filter") as MatchFilter) || "todos"
+  })
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    if (typeof window === "undefined") return "probabilidade"
+    return (localStorage.getItem("analise-sort") as SortOption) || "probabilidade"
+  })
+
+  useEffect(() => {
+    localStorage.setItem("analise-filter", filter)
+  }, [filter])
+  useEffect(() => {
+    localStorage.setItem("analise-sort", sortBy)
+  }, [sortBy])
   const [search, setSearch] = useState("")
   const [activeCompetition, setActiveCompetition] = useState<string | null>(null)
   const [showInfoModal, setShowInfoModal] = useState(false)
