@@ -16,7 +16,20 @@ interface NewsReaderProps {
 export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [imgError, setImgError] = useState(false)
+  const [progress, setProgress] = useState(0)
   const imageSrc = !imgError && news.image ? news.image : null
+
+  useEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = panel
+      const total = scrollHeight - clientHeight
+      setProgress(total > 0 ? Math.min(100, (scrollTop / total) * 100) : 0)
+    }
+    panel.addEventListener("scroll", onScroll, { passive: true })
+    return () => panel.removeEventListener("scroll", onScroll)
+  }, [])
 
   // Fecha com Escape, prende o foco dentro do diálogo e trava a rolagem do
   // fundo. Sem o focus trap, Tab levava o foco para a página atrás do modal.
@@ -100,6 +113,13 @@ export function NewsReader({ news, onClose, onShare }: NewsReaderProps) {
         className="relative max-h-[90vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl border border-border bg-background p-4 shadow-2xl outline-none sm:p-5"
         onClick={(event) => event.stopPropagation()}
       >
+        {/* Barra de progresso de leitura */}
+        <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-2 h-1 bg-muted/40 sm:-mx-5 sm:-mt-5">
+          <div
+            className="h-full bg-primary transition-[width] duration-150"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
         {/* Imagem */}
         {imageSrc ? (
           <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-muted">
