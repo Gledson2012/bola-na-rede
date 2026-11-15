@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, memo, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { X, ChevronRight, Trophy, Sun, Moon, Laptop, Settings, Bell } from "lucide-react"
@@ -10,7 +10,73 @@ import { SoccerBallIcon } from "@/components/icons/soccer-ball"
 import { useThemeStore } from "@/lib/store"
 import { GlobalSearch } from "@/components/layout/GlobalSearch"
 
-export function Header() {
+interface LeaguesSheetProps {
+  sheetRef: React.RefObject<HTMLDivElement | null>
+  onClose: () => void
+  onSelectLeague: (leagueId: string) => void
+}
+
+const LeaguesSheet = memo(function LeaguesSheet({
+  sheetRef,
+  onClose,
+  onSelectLeague,
+}: LeaguesSheetProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="leagues-sheet-title"
+    >
+      <div
+        ref={sheetRef}
+        tabIndex={-1}
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.6rem] border border-border bg-background shadow-2xl outline-none animate-in slide-in-from-bottom-4 duration-200 sm:rounded-[1.6rem]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+          <div>
+            <h2 id="leagues-sheet-title" className="text-sm font-black text-foreground">
+              Campeonatos
+            </h2>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              Escolha uma liga para ver a classificação
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto p-2">
+          {ALL_COMPETITIONS.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => onSelectLeague(c.id)}
+              className="press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent"
+            >
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-base">
+                {c.flag}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-bold text-foreground">{c.name}</span>
+                <span className="block text-[10px] text-muted-foreground">{c.country}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+export const Header = memo(function Header() {
   const router = useRouter()
   const { data: liveMatches = [] } = useLiveMatches()
   const [leaguesOpen, setLeaguesOpen] = useState(false)
@@ -19,11 +85,11 @@ export function Header() {
   const theme = useThemeStore((state) => state.theme)
   const setTheme = useThemeStore((state) => state.setTheme)
 
-  const cycleTheme = () => {
+  const cycleTheme = useCallback(() => {
     if (theme === "light") setTheme("dark")
     else if (theme === "dark") setTheme("system")
     else setTheme("light")
-  }
+  }, [theme, setTheme])
 
   const themeLabel = theme === "light" ? "Claro" : theme === "dark" ? "Escuro" : "Sistema"
   const ThemeIcon = theme === "light" ? Sun : theme === "dark" ? Moon : Laptop
@@ -31,7 +97,6 @@ export function Header() {
   const liveCount = liveMatches.length
 
   // Fecha com Escape, prende o foco no painel e trava a rolagem do fundo
-  // enquanto a folha de ligas está aberta.
   useEffect(() => {
     if (!leaguesOpen) return
 
@@ -87,10 +152,13 @@ export function Header() {
     }
   }, [leaguesOpen])
 
-  const handleSelectLeague = (leagueId: string) => {
+  const handleSelectLeague = useCallback((leagueId: string) => {
     setLeaguesOpen(false)
     router.push(`/classificacao?league=${leagueId}`)
-  }
+  }, [router])
+
+  const handleOpenLeagues = useCallback(() => setLeaguesOpen(true), [])
+  const handleCloseLeagues = useCallback(() => setLeaguesOpen(false), [])
 
   return (
     <>
@@ -128,7 +196,7 @@ export function Header() {
             </button>
 
             <button
-              onClick={() => setLeaguesOpen(true)}
+              onClick={handleOpenLeagues}
               className="press inline-flex h-9 items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 text-[11px] font-bold text-foreground transition-colors hover:border-primary/30"
               aria-label="Ver campeonatos"
             >
@@ -156,58 +224,12 @@ export function Header() {
       </header>
 
       {leaguesOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
-          onClick={() => setLeaguesOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="leagues-sheet-title"
-        >
-          <div
-            ref={sheetRef}
-            tabIndex={-1}
-            className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[1.6rem] border border-border bg-background shadow-2xl outline-none animate-in slide-in-from-bottom-4 duration-200 sm:rounded-[1.6rem]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
-              <div>
-                <h2 id="leagues-sheet-title" className="text-sm font-black text-foreground">
-                  Campeonatos
-                </h2>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  Escolha uma liga para ver a classificação
-                </p>
-              </div>
-              <button
-                onClick={() => setLeaguesOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-label="Fechar"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="overflow-y-auto p-2">
-              {ALL_COMPETITIONS.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => handleSelectLeague(c.id)}
-                  className="press flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent"
-                >
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-base">
-                    {c.flag}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-bold text-foreground">{c.name}</span>
-                    <span className="block text-[10px] text-muted-foreground">{c.country}</span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <LeaguesSheet
+          sheetRef={sheetRef}
+          onClose={handleCloseLeagues}
+          onSelectLeague={handleSelectLeague}
+        />
       )}
     </>
   )
-}
+})

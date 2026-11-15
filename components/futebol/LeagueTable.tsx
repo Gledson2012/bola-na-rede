@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, memo } from "react"
 import Link from "next/link"
 import { cn, formatOdd } from "@/lib/utils"
 import type { Standing } from "@/types"
@@ -20,6 +20,8 @@ interface LeagueTableProps {
   filterText?: string
 }
 
+type SortField = "position" | "points" | "goalDifference" | "wins" | "name"
+
 const NEUTRAL_ZONE = {
   badge: "bg-muted text-muted-foreground",
   border: "border-l-transparent",
@@ -27,7 +29,7 @@ const NEUTRAL_ZONE = {
   text: "text-muted-foreground",
 }
 
-function FormDots({ form }: { form: Standing["form"] }) {
+const FormDots = memo(function FormDots({ form }: { form: Standing["form"] }) {
   if (!form || form.length === 0) {
     return <span className="text-[10px] text-muted-foreground">—</span>
   }
@@ -50,53 +52,55 @@ function FormDots({ form }: { form: Standing["form"] }) {
       ))}
     </span>
   )
-}
+})
 
-export function LeagueTable({
+export const LeagueTable = memo(function LeagueTable({
   standings,
   competitionId = "",
   filterText = "",
 }: LeagueTableProps) {
   const { isFavorite, favorites } = useFavorites()
-  const [sortBy, setSortBy] = useState<"position" | "points" | "goalDifference" | "wins" | "name">("position")
+  const [sortBy, setSortBy] = useState<SortField>("position")
   const [onlyFavorites, setOnlyFavorites] = useState(false)
 
   const query = filterText.trim().toLocaleLowerCase("pt-BR")
 
-  let processed = standings.filter((row) => {
-    if (onlyFavorites && !favorites.includes(row.team.id)) return false
-    if (
-      query &&
-      ![row.team.name, row.team.shortName]
-        .join(" ")
-        .toLocaleLowerCase("pt-BR")
-        .includes(query)
-    ) {
-      return false
-    }
-    return true
-  })
+  const processed = useMemo(() => {
+    const filtered = standings.filter((row) => {
+      if (onlyFavorites && !favorites.includes(row.team.id)) return false
+      if (
+        query &&
+        ![row.team.name, row.team.shortName]
+          .join(" ")
+          .toLocaleLowerCase("pt-BR")
+          .includes(query)
+      ) {
+        return false
+      }
+      return true
+    })
 
-  processed = [...processed].sort((a, b) => {
-    if (sortBy === "points") {
-      if (b.points !== a.points) return b.points - a.points
-      return b.goalDifference - a.goalDifference
-    }
-    if (sortBy === "goalDifference") {
-      if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference
-      return b.points - a.points
-    }
-    if (sortBy === "wins") {
-      if (b.won !== a.won) return b.won - a.won
-      return b.points - a.points
-    }
-    if (sortBy === "name") {
-      return a.team.name.localeCompare(b.team.name, "pt-BR")
-    }
-    return (a.position || 0) - (b.position || 0)
-  })
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "points") {
+        if (b.points !== a.points) return b.points - a.points
+        return b.goalDifference - a.goalDifference
+      }
+      if (sortBy === "goalDifference") {
+        if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference
+        return b.points - a.points
+      }
+      if (sortBy === "wins") {
+        if (b.won !== a.won) return b.won - a.won
+        return b.points - a.points
+      }
+      if (sortBy === "name") {
+        return a.team.name.localeCompare(b.team.name, "pt-BR")
+      }
+      return (a.position || 0) - (b.position || 0)
+    })
+  }, [standings, onlyFavorites, favorites, query, sortBy])
 
-  const competitionMeta = getCompetitionMeta(competitionId)
+  const competitionMeta = useMemo(() => getCompetitionMeta(competitionId), [competitionId])
   const zones = competitionMeta.zones
 
   return (
@@ -105,7 +109,7 @@ export function LeagueTable({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-muted/30 px-3 py-2">
         <button
           type="button"
-          onClick={() => setOnlyFavorites(!onlyFavorites)}
+          onClick={() => setOnlyFavorites((prev) => !prev)}
           className={cn(
             "press inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold transition-all",
             onlyFavorites
@@ -121,7 +125,7 @@ export function LeagueTable({
           <span className="font-semibold text-muted-foreground">Ordenar:</span>
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as SortField)}
             className="h-7 rounded-full border border-border/80 bg-card px-2.5 font-bold text-foreground outline-none"
             aria-label="Ordenar tabela"
           >
@@ -326,4 +330,4 @@ export function LeagueTable({
       </div>
     </div>
   )
-}
+})

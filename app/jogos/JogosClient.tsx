@@ -1,16 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react"
-import {
-  Search,
-  RefreshCw,
-  Star,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Trophy,
-  Radio,
-} from "lucide-react"
+import { useRef } from "react"
+import { Search, RefreshCw, Star, X, Trophy, Radio } from "lucide-react"
 import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary"
 import { MatchCard } from "@/components/futebol/MatchCard"
 import { MatchCardSkeleton } from "@/components/Skeleton"
@@ -22,9 +13,10 @@ import { useGlobalMatches, useFavorites } from "@/lib/queries"
 import { cn } from "@/lib/utils"
 import type { Match } from "@/types"
 import { getCompetitionMeta } from "@/lib/competitions"
-
-type FilterStatus = "todos" | "live" | "upcoming" | "finished" | "pinned"
-type SortOption = "time" | "competition" | "status"
+import { useJogosFilter, type FilterStatus } from "./hooks/use-jogos-filter"
+import { useJogosShortcuts } from "./hooks/use-jogos-shortcuts"
+import { JogosStatsSummary } from "./components/JogosStatsSummary"
+import { JogosCompetitionGroup } from "./components/JogosCompetitionGroup"
 
 export default function JogosClient({
   initialMatches,
@@ -35,283 +27,39 @@ export default function JogosClient({
     useGlobalMatches(initialMatches)
   const { favorites, pinnedMatches, pinnedLeagues, togglePinnedLeague } = useFavorites()
 
-  const isTeamFavorite = useCallback(
-    (teamId: string) => favorites.includes(teamId),
-    [favorites]
-  )
-  const isMatchPinned = useCallback(
-    (matchId: string) => pinnedMatches.includes(matchId),
-    [pinnedMatches]
-  )
-  const isLeaguePinned = useCallback(
-    (leagueName: string) => pinnedLeagues.includes(leagueName),
-    [pinnedLeagues]
-  )
-
-  /**
-   * A API entrega apenas a hora ("15:00") e `Match.date` é fabricada para o
-   * dia atual; normalizamos tudo para "HH:MM" antes de comparar.
-   */
-  const matchTimeKey = (match: Match): string => {
-    if (match.kickoff) return match.kickoff
-    const parsed = new Date(match.date)
-    if (Number.isNaN(parsed.getTime())) return "99:99"
-    return `${String(parsed.getHours()).padStart(2, "0")}:${String(
-      parsed.getMinutes()
-    ).padStart(2, "0")}`
-  }
-
-  const [activeFilter, setActiveFilter] = useState<FilterStatus>("todos")
-  const [activeCompetition, setActiveCompetition] = useState<string | null>(null)
-  const [sortBy, setSortBy] = useState<SortOption>("time")
-  const [search, setSearch] = useState("")
-  const [collapsedLeagues, setCollapsedLeagues] = useState<Record<string, boolean>>({})
-
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const availableCompetitions = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; country?: string; count: number }>()
-
-    matches.forEach((m) => {
-      const compKey = m.competition || "Outros"
-      const existing = map.get(compKey)
-      if (existing) {
-        existing.count++
-      } else {
-        map.set(compKey, {
-          id: m.competitionId || compKey,
-          name: compKey,
-          country: m.competitionCountry,
-          count: 1,
-        })
-      }
-    })
-
-    return Array.from(map.values()).sort((a, b) => b.count - a.count)
-  }, [matches])
-
-  const stats = useMemo(() => {
-    const live = matches.filter((m) => m.status === "live").length
-    const upcoming = matches.filter((m) => m.status === "upcoming").length
-    const finished = matches.filter((m) => m.status === "finished").length
-    const pinned = matches.filter(
-      (m) =>
-        isMatchPinned(m.id) ||
-        isTeamFavorite(m.homeTeam.id) ||
-        isTeamFavorite(m.awayTeam.id)
-    ).length
-
-    return { total: matches.length, live, upcoming, finished, pinned }
-  }, [matches, isMatchPinned, isTeamFavorite])
-
-  const toggleLeagueCollapse = (leagueName: string) => {
-    setCollapsedLeagues((prev) => ({
-      ...prev,
-      [leagueName]: !prev[leagueName],
-    }))
-  }
-
-  const processedMatches = useMemo(() => {
-    let result = matches
-
-    if (search.trim()) {
-      const query = search.trim().toLowerCase()
-      result = result.filter((m) => {
-        const text = [
-          m.homeTeam.name,
-          m.homeTeam.shortName,
-          m.awayTeam.name,
-          m.awayTeam.shortName,
-          m.competition,
-          m.competitionCountry,
-          m.venue,
-          m.kickoff,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-        return text.includes(query)
-      })
-    }
-
-    if (activeFilter === "live") {
-      result = result.filter((m) => m.status === "live")
-    } else if (activeFilter === "upcoming") {
-      result = result.filter((m) => m.status === "upcoming")
-    } else if (activeFilter === "finished") {
-      result = result.filter((m) => m.status === "finished")
-    } else if (activeFilter === "pinned") {
-      result = result.filter(
-        (m) =>
-          isMatchPinned(m.id) ||
-          isTeamFavorite(m.homeTeam.id) ||
-          isTeamFavorite(m.awayTeam.id)
-      )
-    }
-
-    if (activeCompetition) {
-      result = result.filter((m) => m.competition === activeCompetition)
-    }
-
-    result = [...result].sort((a, b) => {
-      if (activeFilter !== "pinned") {
-        const aPinned =
-          isMatchPinned(a.id) ||
-          isTeamFavorite(a.homeTeam.id) ||
-          isTeamFavorite(a.awayTeam.id)
-        const bPinned =
-          isMatchPinned(b.id) ||
-          isTeamFavorite(b.homeTeam.id) ||
-          isTeamFavorite(b.awayTeam.id)
-        if (aPinned && !bPinned) return -1
-        if (!aPinned && bPinned) return 1
-      }
-
-      switch (sortBy) {
-        case "time":
-          return matchTimeKey(a).localeCompare(matchTimeKey(b))
-        case "competition":
-          return (
-            (a.competition || "").localeCompare(b.competition || "", "pt-BR") ||
-            matchTimeKey(a).localeCompare(matchTimeKey(b))
-          )
-        case "status": {
-          const order: Record<string, number> = { live: 0, upcoming: 1, finished: 2 }
-          return (
-            (order[a.status] ?? 3) - (order[b.status] ?? 3) ||
-            matchTimeKey(a).localeCompare(matchTimeKey(b))
-          )
-        }
-        default:
-          return 0
-      }
-    })
-
-    return result
-  }, [
-    matches,
-    search,
+  const {
     activeFilter,
+    setActiveFilter,
     activeCompetition,
+    setActiveCompetition,
     sortBy,
-    isMatchPinned,
-    isTeamFavorite,
-  ])
-
-  const { pinnedSectionMatches, groupedByCompetition } = useMemo(() => {
-    let pinnedList: Match[] = []
-    let restList = processedMatches
-
-    if (activeFilter === "todos" && !search && !activeCompetition) {
-      pinnedList = processedMatches.filter(
-        (m) =>
-          isMatchPinned(m.id) ||
-          isTeamFavorite(m.homeTeam.id) ||
-          isTeamFavorite(m.awayTeam.id)
-      )
-      restList = processedMatches.filter(
-        (m) =>
-          !isMatchPinned(m.id) &&
-          !isTeamFavorite(m.homeTeam.id) &&
-          !isTeamFavorite(m.awayTeam.id)
-      )
-    }
-
-    const groups: Record<string, Match[]> = {}
-    restList.forEach((match) => {
-      const comp = match.competition || "Outros Campeonatos"
-      if (!groups[comp]) groups[comp] = []
-      groups[comp].push(match)
-    })
-
-    const sortedGroups = Object.entries(groups)
-      .map(([compName, compMatches]) => {
-        const meta = getCompetitionMeta(compName)
-        return {
-          name: compName,
-          flag: meta.flag,
-          region: meta.country || compMatches[0]?.competitionCountry || "Futebol",
-          matches: compMatches,
-        }
-      })
-      .sort((a, b) => {
-        const aPinned = pinnedLeagues.includes(a.name)
-        const bPinned = pinnedLeagues.includes(b.name)
-        if (aPinned && !bPinned) return -1
-        if (!aPinned && bPinned) return 1
-        return 0
-      })
-
-    return {
-      pinnedSectionMatches: pinnedList,
-      groupedByCompetition: sortedGroups,
-    }
-  }, [
-    processedMatches,
-    activeFilter,
+    setSortBy,
     search,
-    activeCompetition,
-    isMatchPinned,
-    isTeamFavorite,
+    setSearch,
+    collapsedLeagues,
+    toggleLeagueCollapse,
+    availableCompetitions,
+    stats,
+    processedMatches,
+    pinnedSectionMatches,
+    groupedByCompetition,
+    hasActiveFilters,
+    handleResetFilters,
+  } = useJogosFilter({
+    matches,
+    favorites,
+    pinnedMatches,
     pinnedLeagues,
-  ])
+  })
 
-  // Atalhos de teclado (desktop): F busca, R atualiza e 1–5 alternam os filtros.
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      if (
-        e.ctrlKey ||
-        e.metaKey ||
-        e.altKey ||
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target instanceof HTMLSelectElement ||
-        target?.isContentEditable
-      ) {
-        return
-      }
-
-      switch (e.key) {
-        case "r":
-        case "R":
-          e.preventDefault()
-          refetch()
-          break
-        case "f":
-        case "F":
-          e.preventDefault()
-          searchInputRef.current?.focus()
-          break
-        case "1":
-          setActiveFilter("todos")
-          break
-        case "2":
-          setActiveFilter("live")
-          break
-        case "3":
-          setActiveFilter("upcoming")
-          break
-        case "4":
-          setActiveFilter("finished")
-          break
-        case "5":
-          setActiveFilter("pinned")
-          break
-      }
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [refetch])
-
-  const hasActiveFilters =
-    activeFilter !== "todos" || activeCompetition !== null || search.trim() !== ""
-
-  const handleResetFilters = () => {
-    setActiveFilter("todos")
-    setActiveCompetition(null)
-    setSearch("")
-  }
+  // Atalhos de teclado no desktop (R atualiza, F busca, 1-5 alternam abas)
+  useJogosShortcuts({
+    refetch,
+    searchInputRef,
+    setActiveFilter,
+  })
 
   const filterOptions: SegmentOption<FilterStatus>[] = [
     { value: "todos", label: "Todos", count: stats.total },
@@ -427,24 +175,12 @@ export default function JogosClient({
         </div>
 
         {/* Resumo do Dia */}
-        <div className="grid grid-cols-4 gap-2 rounded-2xl border border-border/70 bg-card p-3 text-center">
-          <div>
-            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Total</div>
-            <div className="text-sm font-black text-foreground">{stats.total}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold uppercase text-live">Ao vivo</div>
-            <div className="text-sm font-black text-live">{stats.live}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Em breve</div>
-            <div className="text-sm font-black text-foreground">{stats.upcoming}</div>
-          </div>
-          <div>
-            <div className="text-[10px] font-semibold uppercase text-muted-foreground">Fim</div>
-            <div className="text-sm font-black text-foreground">{stats.finished}</div>
-          </div>
-        </div>
+        <JogosStatsSummary
+          total={stats.total}
+          live={stats.live}
+          upcoming={stats.upcoming}
+          finished={stats.finished}
+        />
 
         {/* Filtro por situação */}
         <SegmentedControl
@@ -572,68 +308,16 @@ export default function JogosClient({
               </section>
             )}
 
-            {groupedByCompetition.map((group) => {
-              const isCollapsed = collapsedLeagues[group.name] ?? false
-              const isPinned = isLeaguePinned(group.name)
-
-              return (
-                <section key={group.name} className="cv-auto space-y-2">
-                  <div className="flex w-full items-center gap-2 px-0.5 py-1">
-                    <button
-                      onClick={() => toggleLeagueCollapse(group.name)}
-                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                      aria-expanded={!isCollapsed}
-                    >
-                      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-card text-sm">
-                        {group.flag}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-1.5 truncate text-[11px] font-black leading-tight text-foreground">
-                          {group.name}
-                          {isPinned && <Star className="h-3 w-3 flex-shrink-0 fill-warning text-warning" />}
-                        </span>
-                        <span className="block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {group.region} · {group.matches.length}{" "}
-                          {group.matches.length === 1 ? "jogo" : "jogos"}
-                        </span>
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => togglePinnedLeague(group.name)}
-                      className={cn(
-                        "press flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border transition-colors",
-                        isPinned
-                          ? "border-warning/50 bg-warning/10 text-warning"
-                          : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
-                      )}
-                      title={isPinned ? "Desafixar liga" : "Fixar liga no topo"}
-                      aria-label={`Fixar liga ${group.name}`}
-                    >
-                      <Star className={cn("h-3.5 w-3.5", isPinned && "fill-current")} />
-                    </button>
-                    <button
-                      onClick={() => toggleLeagueCollapse(group.name)}
-                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
-                      aria-label={isCollapsed ? "Expandir liga" : "Recolher liga"}
-                    >
-                      {isCollapsed ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronUp className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-
-                  {!isCollapsed && (
-                    <div className="space-y-2">
-                      {group.matches.map((match) => (
-                        <MatchCard key={match.id} match={match} />
-                      ))}
-                    </div>
-                  )}
-                </section>
-              )
-            })}
+            {groupedByCompetition.map((group) => (
+              <JogosCompetitionGroup
+                key={group.name}
+                group={group}
+                isCollapsed={collapsedLeagues[group.name] ?? false}
+                isPinned={pinnedLeagues.includes(group.name)}
+                onToggleCollapse={toggleLeagueCollapse}
+                onTogglePinLeague={togglePinnedLeague}
+              />
+            ))}
           </div>
         )}
 

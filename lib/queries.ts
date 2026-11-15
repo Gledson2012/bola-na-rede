@@ -4,6 +4,7 @@ import type { Match, MatchDetail, News, NewsWithMatches, RelatedMatch } from "@/
 import type { AnalysisResponse } from "@/lib/prediction"
 import { useFavoritesStore } from "@/lib/store"
 import { ALL_COMPETITIONS } from "@/lib/competitions"
+import { cacheStrategies, withInitialData } from "@/lib/cache-strategies"
 
 export interface NewsWithMatchesResponse {
   generatedAt: string
@@ -16,9 +17,7 @@ export function useLiveMatches() {
   return useQuery({
     queryKey: ["matches", "live"],
     queryFn: () => api.matchesLive().then((r) => r.map(mapApiMatchToMatch)),
-    refetchInterval: 15_000, // Ajustado para maior precisão ao vivo
-    staleTime: 5_000,
-    gcTime: 60_000,
+    ...cacheStrategies.liveMatches,
   })
 }
 
@@ -26,9 +25,7 @@ export function useTodayMatches() {
   return useQuery({
     queryKey: ["matches", "today"],
     queryFn: () => api.matchesToday().then((r) => r.map(mapApiMatchToMatch)),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
-    gcTime: 300_000,
+    ...cacheStrategies.todayMatches,
   })
 }
 
@@ -44,11 +41,8 @@ export function useGlobalMatches(initialMatches?: Match[]) {
   return useQuery({
     queryKey: ["matches", "global"],
     queryFn: () => api.matchesGlobal().then((r) => r.map(mapApiMatchToMatch)),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
-    ...(initialMatches && initialMatches.length > 0
-      ? { initialData: initialMatches, initialDataUpdatedAt: 0 }
-      : {}),
+    ...cacheStrategies.globalMatches,
+    ...withInitialData(initialMatches),
   })
 }
 
@@ -60,11 +54,16 @@ export function useMatch(id: string, initialDetail?: MatchDetail) {
       return mapApiMatchToMatchDetail(data)
     },
     enabled: !!id,
-    refetchInterval: (query) => query.state.data?.status === "live" ? 15_000 : false,
-    staleTime: 10_000,
-    ...(initialDetail
-      ? { initialData: initialDetail, initialDataUpdatedAt: 0 }
-      : {}),
+    refetchInterval: (query) => {
+      const isLive = query.state.data?.status === "live"
+      const strategy = cacheStrategies.matchDetail(isLive)
+      return typeof strategy.refetchInterval === "number" ? strategy.refetchInterval : false
+    },
+    staleTime: (query) => {
+      const isLive = query.state.data?.status === "live"
+      return cacheStrategies.matchDetail(isLive).staleTime
+    },
+    ...withInitialData(initialDetail),
   })
 }
 
@@ -79,9 +78,7 @@ export function useAnalysis() {
       }
       return response.json()
     },
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-    retry: 1,
+    ...cacheStrategies.analysis,
   })
 }
 
@@ -90,7 +87,7 @@ export function useTeams() {
   return useQuery({
     queryKey: ["teams", "all"],
     queryFn: () => api.teams().then((r) => r.map(mapApiTeamToTeam)),
-    staleTime: 5 * 60_000,
+    ...cacheStrategies.teams,
   })
 }
 
@@ -114,7 +111,7 @@ export function useTeam(id: string) {
       }
     },
     enabled: !!id,
-    staleTime: 5 * 60_000,
+    ...cacheStrategies.teams,
     retry: 1,
   })
 }
@@ -128,7 +125,7 @@ export function useTeamForm(id: string, limit = 5) {
         .then((r) => r.map(mapApiMatchToMatch))
         .catch(() => []),
     enabled: !!id,
-    staleTime: 60_000,
+    ...cacheStrategies.teamForm,
   })
 }
 
@@ -141,7 +138,7 @@ export function useTeamNext(id: string) {
         .then((r) => (r ? mapApiMatchToMatch(r) : null))
         .catch(() => null),
     enabled: !!id,
-    staleTime: 60_000,
+    ...cacheStrategies.teamForm,
   })
 }
 
@@ -154,7 +151,7 @@ export function useTeamLast(id: string) {
         .then((r) => (r ? mapApiMatchToMatch(r) : null))
         .catch(() => null),
     enabled: !!id,
-    staleTime: 60_000,
+    ...cacheStrategies.teamForm,
   })
 }
 
@@ -190,7 +187,7 @@ export function useCompetitions() {
         }))
       }
     },
-    staleTime: 5 * 60_000,
+    ...cacheStrategies.competitions,
   })
 }
 
@@ -199,7 +196,7 @@ export function useCompetitionTable(competitionId?: string) {
     queryKey: ["competitions", "table", competitionId],
     queryFn: () => (competitionId ? api.competitionTable(competitionId).then((r) => r.map(mapApiStandingToStanding)) : Promise.resolve([])),
     enabled: !!competitionId,
-    staleTime: 60_000,
+    ...cacheStrategies.competitionTable,
   })
 }
 
@@ -208,10 +205,8 @@ export function useNews(initialNews?: News[]) {
   return useQuery({
     queryKey: ["news"],
     queryFn: () => api.news().then((r) => r.map(mapApiNewsToNews)),
-    staleTime: 5 * 60_000,
-    ...(initialNews && initialNews.length > 0
-      ? { initialData: initialNews, initialDataUpdatedAt: 0 }
-      : {}),
+    ...cacheStrategies.news,
+    ...withInitialData(initialNews),
   })
 }
 
@@ -226,7 +221,7 @@ export function useNewsWithMatches() {
       }
       return response.json()
     },
-    staleTime: 3 * 60_000,
+    ...cacheStrategies.news,
     retry: 1,
   })
 }
