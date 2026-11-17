@@ -100,6 +100,7 @@ export function useTeam(id: string) {
         return mapApiTeamToTeam(details)
       } catch (detailsError) {
         // Fallback: the team may exist in the list without a detail endpoint
+        console.warn(`[useTeam] detail endpoint failed for ${id}, falling back to teams list:`, detailsError)
         try {
           const list = await api.teams()
           const found = list.find((t) => t.id === id)

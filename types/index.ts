@@ -35,7 +35,7 @@ export interface ApiMatch {
   homeScore: number | null
   awayScore: number | null
   venue: string | null
-  weather: any
+  weather: Record<string, unknown> | null
 }
 
 export interface ApiNews {

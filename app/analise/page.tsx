@@ -323,7 +323,9 @@ export default function AnalisePage() {
               </span>
               <div>
                 <h2 className="text-[13px] font-black text-foreground">Bilhete do modelo</h2>
-                <p className="text-[9px] text-muted-foreground">Seleções independentes de alta confiança</p>
+                <p className="text-[9px] text-muted-foreground">
+                  Seleções independentes de alta confiança · estimativa estatística, não recomendação de aposta
+                </p>
               </div>
             </div>
             <div className="text-right">
@@ -360,6 +362,12 @@ export default function AnalisePage() {
               </li>
             ))}
           </ul>
+
+          <p className="mt-3 text-[9px] text-muted-foreground text-center">
+            ⚠️ O modelo de Poisson é exploratório. Probabilidades são estimativas
+            baseadas em classificação e forma recente — não garantem resultados
+            nem constituem recomendação de aposta.
+          </p>
         </section>
       )}
 

@@ -409,7 +409,7 @@ export function getCompetitionMeta(idOrName?: string): CompetitionMeta {
     return ALL_COMPETITIONS.find((c) => c.id === "uefa.champions")!
   }
   if (normalized.includes("premier") || normalized.includes("eng.1") || normalized.includes("inglaterra")) return ALL_COMPETITIONS.find((c) => c.id === "eng.1")!
-  if (normalized.includes("liga") && normalized.includes("espanh") || normalized.includes("esp.1") || normalized.includes("la liga")) return ALL_COMPETITIONS.find((c) => c.id === "esp.1")!
+  if ((normalized.includes("liga") && normalized.includes("espanh")) || normalized.includes("esp.1") || normalized.includes("la liga")) return ALL_COMPETITIONS.find((c) => c.id === "esp.1")!
   if (normalized.includes("libertadores") || normalized.includes("conmebol.libertadores")) return ALL_COMPETITIONS.find((c) => c.id === "conmebol.libertadores")!
   if (normalized.includes("italia") || normalized.includes("ita.1") || normalized.includes("serie a")) return ALL_COMPETITIONS.find((c) => c.id === "ita.1")!
   if (normalized.includes("bundesliga") || normalized.includes("ger.1") || normalized.includes("alemanha")) return ALL_COMPETITIONS.find((c) => c.id === "ger.1")!
