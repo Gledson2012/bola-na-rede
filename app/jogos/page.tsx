@@ -1,6 +1,7 @@
 import type { ApiMatch, Match } from "@/types"
-import { mapApiMatchToMatch } from "@/lib/api"
+import { mapApiMatchToMatch, mapApiMatchToMatchAsync } from "@/lib/api"
 import { getUpstreamJson } from "@/lib/upstream"
+import { getDateEnrichmentSource } from "@/lib/date-enrichment"
 import JogosClient from "./JogosClient"
 
 /**
@@ -15,6 +16,10 @@ async function loadInitialMatches(): Promise<Match[]> {
     const data = await getUpstreamJson<ApiMatch[]>("/matches/global", {
       revalidate,
     })
+    const source = getDateEnrichmentSource()
+    if (source) {
+      return Promise.all(data.map(mapApiMatchToMatchAsync))
+    }
     return data.map(mapApiMatchToMatch)
   } catch {
     // Sem dados no build/render: o cliente busca novamente ao montar.

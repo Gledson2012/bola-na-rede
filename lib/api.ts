@@ -242,6 +242,31 @@ export function mapApiMatchToMatch(m: ApiMatch): Match {
   }
 }
 
+/**
+ * Versão assíncrona de `mapApiMatchToMatch` que tenta enriquecer a data
+ * da partida com uma fonte alternativa configurada via variável de ambiente.
+ * Se a fonte não estiver configurada ou falhar, usa a data de hoje (fallback).
+ */
+export async function mapApiMatchToMatchAsync(m: ApiMatch): Promise<Match> {
+  const { buildEnrichedMatchDate } = await import("@/lib/date-enrichment")
+  const date = await buildEnrichedMatchDate(m.id, m.kickoff)
+  return {
+    id: m.id,
+    homeTeam: mapApiTeamToTeam(m.home),
+    awayTeam: mapApiTeamToTeam(m.away),
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+    status: m.status,
+    minute: toMatchMinute(m.minute),
+    date,
+    competition: localizeCompetition(m.competition),
+    competitionCountry: localizeCountry(m.competitionCountry),
+    competitionId: m.competitionId,
+    venue: m.venue,
+    kickoff: m.kickoff,
+  }
+}
+
 export function mapApiMatchToMatchDetail(m: ApiMatchDetails): MatchDetail {
   const match = mapApiMatchToMatch(m)
   const events: MatchEvent[] = (m.events || []).map((e) => ({
