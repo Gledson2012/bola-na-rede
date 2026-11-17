@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { fetchWithTimeout } from "@/lib/api"
+import { extractToken } from "@/lib/auth"
 
 /**
  * Teto por lista.
@@ -30,6 +32,8 @@ interface FavoritesState {
   pinnedMatches: string[]
   reminders: string[]
   pinnedLeagues: string[]
+  user: { id: string; email: string; name: string } | null
+  token: string | null
   toggleFavorite: (teamId: string) => void
   isFavorite: (teamId: string) => boolean
   togglePinnedMatch: (matchId: string) => void
@@ -38,6 +42,9 @@ interface FavoritesState {
   hasReminder: (matchId: string) => boolean
   togglePinnedLeague: (leagueName: string) => void
   isPinnedLeague: (leagueName: string) => boolean
+  setUser: (user: { id: string; email: string; name: string } | null, token: string | null) => void
+  logout: () => void
+  syncFavorites: () => Promise<void>
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -47,22 +54,73 @@ export const useFavoritesStore = create<FavoritesState>()(
       pinnedMatches: [],
       reminders: [],
       pinnedLeagues: [],
+      user: null,
+      token: null,
       toggleFavorite: (teamId: string) => {
         set({ favorites: toggled(get().favorites, teamId) })
+        void syncIfAuthenticated(get())
       },
       isFavorite: (teamId: string) => (get().favorites || []).includes(teamId),
       togglePinnedMatch: (matchId: string) => {
         set({ pinnedMatches: toggled(get().pinnedMatches, matchId) })
+        void syncIfAuthenticated(get())
       },
       isPinnedMatch: (matchId: string) => (get().pinnedMatches || []).includes(matchId),
       toggleReminder: (matchId: string) => {
         set({ reminders: toggled(get().reminders, matchId) })
+        void syncIfAuthenticated(get())
       },
       hasReminder: (matchId: string) => (get().reminders || []).includes(matchId),
       togglePinnedLeague: (leagueName: string) => {
         set({ pinnedLeagues: toggled(get().pinnedLeagues, leagueName) })
+        void syncIfAuthenticated(get())
       },
       isPinnedLeague: (leagueName: string) => (get().pinnedLeagues || []).includes(leagueName),
+      setUser: (user, token) => {
+        set({ user, token })
+        if (user && token) {
+          void syncIfAuthenticated(get())
+        }
+      },
+      logout: () => {
+        localStorage.removeItem("auth_token")
+        localStorage.removeItem("auth_user")
+        set({ user: null, token: null, favorites: [], pinnedMatches: [], reminders: [], pinnedLeagues: [] })
+      },
+      syncFavorites: async () => {
+        const state = get()
+        if (!state.token || !state.user) return
+
+        try {
+          // Envia favoritos locais para o servidor
+          const res = await fetchWithTimeout("/api/auth/favorites", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${state.token}`,
+            },
+            body: JSON.stringify({
+              favorites: state.favorites,
+              pinnedMatches: state.pinnedMatches,
+              reminders: state.reminders,
+              pinnedLeagues: state.pinnedLeagues,
+            }),
+          })
+
+          if (res.ok) {
+            // Busca a versão do servidor (mesclando com local)
+            const data = await res.json()
+            set({
+              favorites: normalizeIds([...state.favorites, ...(data.favorites ?? [])]),
+              pinnedMatches: normalizeIds([...state.pinnedMatches, ...(data.pinnedMatches ?? [])]),
+              reminders: normalizeIds([...state.reminders, ...(data.reminders ?? [])]),
+              pinnedLeagues: normalizeIds([...state.pinnedLeagues, ...(data.pinnedLeagues ?? [])]),
+            })
+          }
+        } catch {
+          // Falha silenciosa: mantém os dados locais
+        }
+      },
     }),
     {
       name: 'futebol-favorites',
@@ -80,6 +138,8 @@ export const useFavoritesStore = create<FavoritesState>()(
           pinnedMatches: normalizeIds(state.pinnedMatches),
           reminders: normalizeIds(state.reminders),
           pinnedLeagues: normalizeIds(state.pinnedLeagues),
+          user: null,
+          token: null,
         } as FavoritesState
       },
       merge: (persisted, current) => {
@@ -90,11 +150,20 @@ export const useFavoritesStore = create<FavoritesState>()(
           pinnedMatches: normalizeIds(state.pinnedMatches),
           reminders: normalizeIds(state.reminders),
           pinnedLeagues: normalizeIds(state.pinnedLeagues),
+          user: null,
+          token: null,
         }
       },
     }
   )
 )
+
+/** Sincroniza favoritos com o servidor se houver um usuário autenticado. */
+async function syncIfAuthenticated(state: FavoritesState) {
+  if (state.token && state.user) {
+    await state.syncFavorites()
+  }
+}
 
 /**
  * Seletores reativos.
@@ -121,6 +190,16 @@ export function useHasReminder(matchId: string): boolean {
 
 export function useIsPinnedLeague(leagueName: string): boolean {
   return useFavoritesStore((state) => (state.pinnedLeagues || []).includes(leagueName))
+}
+
+export function useAuth() {
+  return useFavoritesStore((state) => ({
+    user: state.user,
+    token: state.token,
+    isAuthenticated: !!state.user,
+    setUser: state.setUser,
+    logout: state.logout,
+  }))
 }
 
 export type ThemeMode = "system" | "light" | "dark"

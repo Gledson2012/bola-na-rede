@@ -10,6 +10,7 @@ import { Analytics } from "@vercel/analytics/react"
 import { InstallPrompt } from "@/components/pwa/InstallPrompt"
 import { GoalMonitor } from "@/components/futebol/GoalMonitor"
 import { AnalyticsInit } from "@/components/observability/AnalyticsInit"
+import { AuthInitializer } from "@/components/observability/AuthInitializer"
 
 const SITE_URL =
   process.env.APP_PUBLIC_URL?.replace(/\/$/, "") ||
@@ -84,6 +85,7 @@ export default function RootLayout({
     <html lang="pt-BR" className="h-full antialiased" data-scroll-behavior="smooth">
       <body className="font-sans h-full bg-background text-foreground flex justify-center selection:bg-primary/20 selection:text-primary">
         <Providers>
+          <AuthInitializer />
           <ServiceWorkerRegistration />
           <div className="relative flex min-h-[100dvh] w-full max-w-lg flex-col overflow-x-clip">
             <a
