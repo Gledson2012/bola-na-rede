@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkRateLimit, clientKey } from "@/lib/rate-limit"
+import { extractToken, verifyToken } from "@/lib/auth"
 
 /**
  * Proxy (Next.js 16) para adicionar headers de segurança e otimizações.
@@ -14,11 +15,46 @@ import { checkRateLimit, clientKey } from "@/lib/rate-limit"
  *
  * Otimizações:
  * - Rate limit por IP nas chamadas à API upstream (via Redis; fail-open sem Redis)
+ * - Proteção de rotas que exigem autenticação (ex.: /api/auth/favorites)
  * - Early hints para recursos críticos
  * - Preconnect para APIs externas
  */
+
+/** Rotas que exigem autenticação via JWT (header Authorization: Bearer <token>). */
+const AUTH_REQUIRED_ROUTES = ["/api/auth/favorites"]
+
+/** Rotas de auth públicas que nunca exigem token. */
+const AUTH_PUBLIC_ROUTES = [
+  "/api/auth/register",
+  "/api/auth/login",
+  "/api/auth/logout",
+  "/api/auth/me",
+]
+
+/** Verifica se o caminho exige autenticação. */
+function requiresAuth(path: string): boolean {
+  return AUTH_REQUIRED_ROUTES.some((route) => path === route || path.startsWith(`${route}/`))
+}
+
+/** Verifica se o caminho é uma rota pública de auth. */
+function isAuthPublicRoute(path: string): boolean {
+  return AUTH_PUBLIC_ROUTES.includes(path)
+}
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
+
+  // Proteção de rotas que exigem autenticação
+  if (requiresAuth(path) && !isAuthPublicRoute(path)) {
+    const token = extractToken(request.headers.get("authorization"))
+    if (!token) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 })
+    }
+    const payload = verifyToken(token)
+    if (!payload) {
+      return NextResponse.json({ error: "Token inválido ou expirado." }, { status: 401 })
+    }
+  }
 
   // Rate limit apenas para chamadas à API upstream (/api/proxy/*)
   // Limite: 100 requisições por minuto por IP. Sem Redis, falha aberta (não bloqueia).
