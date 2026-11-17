@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { Bell, BellOff, Check, Loader2 } from "lucide-react"
 import { PageHeader } from "@/components/ui/page-header"
-import { getPublicVapidKey, hasPushConfiguration } from "@/lib/web-push"
 import { fetchWithTimeout } from "@/lib/api"
 
 export default function NotificacoesPage() {
