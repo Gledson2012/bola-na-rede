@@ -147,10 +147,17 @@ export async function fetchHistory(
         `/matches?date=${encodeURIComponent(date)}&limit=500`,
         { revalidate }
       )
-      return { date, matches: raw.map(mapApiMatchToMatch), unavailable: false }
+      const matches = raw.map(mapApiMatchToMatch)
+      // Usa a data real da partida quando disponível; caso contrário,
+      // usa a data da janela (comportamento anterior).
+      const datedMatches = matches.map((match) => ({
+        match,
+        playedOn: match.date ? match.date.slice(0, 10) : date,
+      }))
+      return { date, matches: datedMatches, unavailable: false }
     } catch (error) {
       console.warn(`[history] histórico indisponível para ${date}:`, error)
-      return { date, matches: [] as Match[], unavailable: true }
+      return { date, matches: [] as DatedMatch[], unavailable: true }
     }
   })
 
@@ -158,11 +165,14 @@ export async function fetchHistory(
   const matches: DatedMatch[] = []
 
   for (const { date, matches: dayMatches } of daily) {
-    for (const match of dayMatches) {
+    for (const datedMatch of dayMatches) {
+      const match = datedMatch.match
       // A mesma partida pode aparecer em mais de um dia: mantém a primeira.
       if (seen.has(match.id)) continue
       seen.add(match.id)
-      matches.push({ match, playedOn: date })
+      // Usa a data real da partida quando disponível; caso contrário,
+      // usa a data da janela (comportamento anterior).
+      matches.push({ match, playedOn: datedMatch.playedOn })
     }
   }
 

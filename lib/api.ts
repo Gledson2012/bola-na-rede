@@ -202,16 +202,33 @@ export function mapApiTeamToTeam(t: ApiTeamLike): Team {
 }
 
 /**
- * The upstream API only exposes a kickoff time ("15:00"), not a full date.
- * We build an ISO value for the current day so time formatting/sorting works,
- * but the UI must not treat it as a reliable calendar date.
+ * Constrói a data ISO de uma partida.
+ *
+ * A API agora fornece a data real no campo `date` ("YYYY-MM-DD"). Quando
+ * disponível, usamos essa data com o horário do `kickoff`. Caso contrário,
+ * fabricamos com "hoje" (comportamento anterior) — a API pode não fornecer
+ * data em todos os endpoints.
  */
-function buildMatchDate(kickoff?: string): string {
+function buildMatchDate(kickoff?: string, realDate?: string): string {
+  if (realDate && /^\d{4}-\d{2}-\d{2}$/.test(realDate)) {
+    const [year, month, day] = realDate.split("-").map(Number)
+    const [hours, minutes] = kickoff?.split(":").map(Number) ?? []
+    const matchDate = new Date(Date.UTC(year, month - 1, day))
+    matchDate.setUTCHours(
+      isNaN(hours ?? NaN) ? 12 : hours!,
+      isNaN(minutes ?? NaN) ? 0 : minutes!,
+      0,
+      0
+    )
+    return matchDate.toISOString()
+  }
+
+  // Fallback: fabrica com "hoje" (comportamento anterior)
   const today = new Date()
   if (!kickoff) return today.toISOString()
   const [hours, minutes] = kickoff.split(":").map(Number)
   const matchDate = new Date(today)
-  matchDate.setHours(isNaN(hours) ? 12 : hours, isNaN(minutes) ? 0 : minutes, 0, 0)
+  matchDate.setUTCHours(isNaN(hours) ? 12 : hours, isNaN(minutes) ? 0 : minutes, 0, 0)
   return matchDate.toISOString()
 }
 
@@ -233,7 +250,7 @@ export function mapApiMatchToMatch(m: ApiMatch): Match {
     awayScore: m.awayScore,
     status: m.status,
     minute: toMatchMinute(m.minute),
-    date: buildMatchDate(m.kickoff),
+    date: buildMatchDate(m.kickoff, m.date),
     competition: localizeCompetition(m.competition),
     competitionCountry: localizeCountry(m.competitionCountry),
     competitionId: m.competitionId,
@@ -248,6 +265,12 @@ export function mapApiMatchToMatch(m: ApiMatch): Match {
  * Se a fonte não estiver configurada ou falhar, usa a data de hoje (fallback).
  */
 export async function mapApiMatchToMatchAsync(m: ApiMatch): Promise<Match> {
+  // Se a API fornece data real, usa-a diretamente
+  if (m.date && /^\d{4}-\d{2}-\d{2}$/.test(m.date)) {
+    return mapApiMatchToMatch(m)
+  }
+
+  // Caso contrário, tenta enriquecimento externo
   const { buildEnrichedMatchDate } = await import("@/lib/date-enrichment")
   const date = await buildEnrichedMatchDate(m.id, m.kickoff)
   return {

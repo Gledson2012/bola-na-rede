@@ -16,6 +16,7 @@ export interface ApiMatch {
   competitionCountry: string
   competitionId: string
   kickoff: string
+  date?: string
   status: MatchStatus
   minute: number
   home: {
