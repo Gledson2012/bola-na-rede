@@ -9,6 +9,7 @@ import { ScrollToTop } from "@/components/ui/scroll-to-top"
 import { Analytics } from "@vercel/analytics/react"
 import { InstallPrompt } from "@/components/pwa/InstallPrompt"
 import { GoalMonitor } from "@/components/futebol/GoalMonitor"
+import { AnalyticsInit } from "@/components/observability/AnalyticsInit"
 
 const SITE_URL =
   process.env.APP_PUBLIC_URL?.replace(/\/$/, "") ||
@@ -102,6 +103,7 @@ export default function RootLayout({
               {children}
             </main>
             <Analytics />
+            <AnalyticsInit />
             <InstallPrompt />
             <GoalMonitor />
             <BottomNav />

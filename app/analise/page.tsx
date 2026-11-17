@@ -5,6 +5,7 @@ import { AlertTriangle, RefreshCw, Search, Info } from "lucide-react"
 import { useAnalysis, useFavorites } from "@/lib/queries"
 import type { MatchAnalysis } from "@/lib/prediction"
 import { cn, formatOdd, percent } from "@/lib/utils"
+import { trackTiming, trackEvent } from "@/lib/analytics"
 import { triggerHaptic } from "@/lib/haptics"
 import { ImpactStyle } from "@capacitor/haptics"
 import { LiveAlertsControl } from "@/components/live/LiveAlertsControl"
@@ -114,6 +115,33 @@ export default function AnalisePage() {
   useEffect(() => {
     localStorage.setItem("analise-sort", sortBy)
   }, [sortBy])
+
+  /** Rastreia métricas de negócio quando os dados da análise carregam. */
+  useEffect(() => {
+    if (!data) return
+
+    const start = performance.now()
+
+    // Tempo de carregamento da análise (medido quando os dados estão disponíveis)
+    trackTiming("analise_load", start)
+
+    // Taxa de sucesso: % de partidas com análise disponível
+    const analyzed = data.matches.filter((m) => m.available).length
+    const total = data.matches.length
+    const successRate = total > 0 ? analyzed / total : 0
+
+    trackEvent({
+      name: "analise_loaded",
+      params: {
+        total_matches: total,
+        analyzed_matches: analyzed,
+        insufficient_matches: data.summary.insufficient,
+        live_matches: data.summary.live,
+        success_rate: Math.round(successRate * 1000) / 10, // 1 casa decimal
+        event_category: "Business",
+      },
+    })
+  }, [data])
   const [search, setSearch] = useState("")
   const [activeCompetition, setActiveCompetition] = useState<string | null>(null)
   const [showInfoModal, setShowInfoModal] = useState(false)

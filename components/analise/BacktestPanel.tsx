@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { AlertTriangle, LoaderCircle, RefreshCw } from "lucide-react"
 import { cn, percent } from "@/lib/utils"
+import { trackEvent, trackTiming } from "@/lib/analytics"
 import { triggerHaptic } from "@/lib/haptics"
 import { ImpactStyle } from "@capacitor/haptics"
 import { fetchWithTimeout } from "@/lib/api"
@@ -51,6 +52,7 @@ export function BacktestPanel() {
     const controller = new AbortController()
     controllerRef.current = controller
 
+    const startTime = performance.now()
     setLoading(true)
     setError(null)
     try {
@@ -68,7 +70,9 @@ export function BacktestPanel() {
         )
       }
       setBacktest((await response.json()) as BacktestResponse)
+      trackTiming("backtest_duration", performance.now() - startTime)
     } catch (runError) {
+      trackTiming("backtest_duration", performance.now() - startTime)
       // AbortError = componente desmontou ou usuário clicou de novo: ignora.
       if (runError instanceof Error && runError.name === "AbortError") return
       setError(
@@ -80,6 +84,28 @@ export function BacktestPanel() {
       if (!controller.signal.aborted) setLoading(false)
     }
   }
+
+  /** Rastreia métricas de uso do backtest quando é executado com sucesso. */
+  useEffect(() => {
+    if (!backtest) return
+
+    trackEvent({
+      name: "backtest_run",
+      params: {
+        test_window_days: backtest.testWindowDays,
+        training_window_days: backtest.trainingWindowDays,
+        finished_matches: backtest.finishedMatches,
+        evaluated_matches: backtest.evaluatedMatches,
+        unavailable_days: backtest.unavailableDays,
+        coverage: Math.round(backtest.coverage * 1000) / 10,
+        model_brier_score:
+          backtest.modelBrierScore ?? "null",
+        best_baseline_label: backtest.bestBaselineLabel,
+        assessment: backtest.assessment,
+        event_category: "Business",
+      },
+    })
+  }, [backtest])
 
   const assessment = backtest ? ASSESSMENT[backtest.assessment] : null
 
